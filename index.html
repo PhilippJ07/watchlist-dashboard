@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watchlist Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: oklch(0.16 0.01 250);
+    --panel: oklch(0.19 0.012 250);
+    --panel-border: oklch(0.28 0.012 250);
+    --row-border: oklch(0.24 0.012 250);
+    --row-hover: oklch(0.23 0.014 250);
+    --success-hover: oklch(0.72 0.15 145 / 0.12);
+    --text: oklch(0.95 0.005 250);
+    --text-dim: oklch(0.6 0.01 250);
+    --text-faint: oklch(0.55 0.01 250);
+    --accent: oklch(0.75 0.14 250);
+    --success: oklch(0.72 0.15 145);
+    --success-bg: oklch(0.72 0.15 145 / 0.16);
+    --success-row: oklch(0.72 0.15 145 / 0.05);
+    --danger: oklch(0.68 0.17 25);
+    --danger-bg: oklch(0.68 0.17 25 / 0.16);
+    --badge-bg: oklch(0.3 0.01 250);
+    --warn: oklch(0.78 0.13 75);
+    --input-bg: oklch(0.14 0.01 250);
+    --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    --sans: Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    padding: 48px 40px 80px;
+    display: flex;
+    justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 1260px; overflow-x: auto; }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; margin: 0; color: var(--text); }
+  .meta { font-size: 14px; color: var(--text-dim); margin-top: 4px; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+  .summary .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; }
+  .summary .sep { color: oklch(0.4 0.01 250); margin: 0 4px; }
+  .manage-btn {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text-dim);
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  .manage-btn:hover { color: var(--text); border-color: var(--accent); }
+
+  .admin-panel {
+    display: none;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    margin-top: 20px;
+    padding: 20px;
+  }
+  .admin-panel.open { display: block; }
+  .admin-panel h2 { font-size: 14px; margin: 0 0 4px; color: var(--text); }
+  .admin-panel .hint { font-size: 12px; color: var(--text-dim); margin: 0 0 14px; line-height: 1.5; }
+  .admin-section { margin-bottom: 22px; }
+  .admin-section:last-child { margin-bottom: 0; }
+  .field-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+  .field input {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: var(--input-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 5px;
+    color: var(--text);
+    padding: 7px 9px;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); }
+  .admin-actions { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .btn {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 8px 14px;
+    cursor: pointer;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+  }
+  .btn:hover { background: oklch(0.75 0.14 250 / 0.1); }
+  .btn.secondary { border-color: var(--panel-border); color: var(--text-dim); }
+  .btn.danger { border-color: var(--danger); color: var(--danger); font-size: 11px; padding: 3px 8px; }
+  .admin-msg { font-size: 12.5px; font-family: var(--mono); margin-top: 10px; }
+  .admin-msg.ok { color: var(--success); }
+  .admin-msg.err { color: var(--danger); }
+  .current-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .current-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 6px 10px;
+    border: 1px solid var(--panel-border);
+    border-radius: 5px;
+    color: var(--text-dim);
+  }
+  .current-item span.n { color: var(--text); }
+
+  .demo-banner {
+    margin-top: 20px;
+    padding: 10px 14px;
+    border: 1px dashed var(--warn);
+    border-radius: 7px;
+    background: oklch(0.78 0.13 75 / 0.08);
+    color: var(--text-dim);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .demo-banner strong { color: var(--warn); }
+  .demo-banner code {
+    font-family: var(--mono);
+    font-size: 0.92em;
+    color: var(--text);
+  }
+
+  .highlights {
+    border: 1px solid var(--success);
+    border-radius: 8px;
+    margin-top: 26px;
+    padding: 0 8px 8px;
+    background: var(--success-row);
+    box-shadow: 0 0 24px -12px var(--success);
+  }
+  .highlights-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 16px 8px 4px;
+  }
+  .highlights-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--success);
+    letter-spacing: 0.01em;
+  }
+  .highlights-sub { font-size: 12.5px; color: var(--text-dim); }
+  .highlights .col-header { margin-top: 8px; padding: 0 8px 12px; border-bottom-color: oklch(0.72 0.15 145 / 0.25); }
+  .highlights .stock-block { border-bottom-color: oklch(0.72 0.15 145 / 0.18); }
+  .highlights .row { border-left-color: transparent; background: transparent; }
+  .highlights .stock-block.hit .row { border-left-color: var(--success); }
+  .reason {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: var(--badge-bg);
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .reason.hit { background: var(--success-bg); color: var(--success); }
+  .reason-sector { font-size: 11px; color: var(--text-faint); }
+
+  .col-header {
+    display: grid;
+    grid-template-columns: minmax(130px,1.6fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(90px,1fr) minmax(80px,0.9fr) minmax(110px,1.2fr) 1.75rem;
+    gap: 20px;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--panel-border);
+    margin-top: 24px;
+  }
+  .col-header span {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .sector {
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    margin-top: 20px;
+    padding: 0 8px 8px;
+  }
+  .sector-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.01em;
+    padding: 16px 8px 10px;
+  }
+  .stock-block {
+    border-bottom: 1px solid var(--row-border);
+    border-radius: 6px;
+    position: relative;
+    transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+  }
+  .sector .stock-block:last-child { border-bottom: none; }
+  .stock-block:hover {
+    transform: scale(1.012);
+    background: var(--row-hover);
+    box-shadow: 0 6px 20px -8px rgba(0, 0, 0, 0.65);
+    border-bottom-color: transparent;
+    z-index: 2;
+  }
+  .stock-block.hit:hover { background: var(--success-hover); }
+  @media (prefers-reduced-motion: reduce) {
+    .stock-block { transition: background-color 120ms ease; }
+    .stock-block:hover { transform: none; }
+  }
+  .row {
+    display: grid;
+    grid-template-columns: minmax(130px,1.6fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(90px,1fr) minmax(80px,0.9fr) minmax(110px,1.2fr) 1.75rem;
+    gap: 20px;
+    align-items: center;
+    padding: 14px 8px;
+    border-left: 3px solid transparent;
+    border-radius: 4px;
+  }
+  .stock-block.hit .row { border-left-color: var(--success); background: var(--success-row); }
+  .row-actions { display: flex; justify-content: flex-end; }
+  .remove-inline {
+    opacity: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: grid;
+    place-items: center;
+    border-radius: 5px;
+    border: 1px solid var(--panel-border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    transition: opacity 140ms ease, color 140ms ease, border-color 140ms ease;
+  }
+  .stock-block:hover .remove-inline { opacity: 1; }
+  .remove-inline:hover, .remove-inline:focus-visible {
+    opacity: 1;
+    color: var(--danger);
+    border-color: var(--danger);
+    outline: none;
+  }
+  .stock-id { display: flex; flex-direction: column; gap: 2px; }
+  .ticker { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--text); }
+  .name { font-size: 13px; color: var(--text-dim); }
+  .price { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--text); }
+  .change { font-family: var(--mono); font-size: 14px; font-weight: 500; }
+  .change.up { color: var(--success); }
+  .change.down { color: var(--danger); }
+  .sparkline { display: block; }
+  .target-block { display: flex; flex-direction: column; gap: 2px; }
+  .target { font-family: var(--mono); font-size: 14px; color: oklch(0.9 0.005 250); }
+  .upside { font-family: var(--mono); font-size: 12px; }
+  .upside.up { color: var(--success); }
+  .upside.down { color: var(--danger); }
+  .entry-block { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .entry-range { font-family: var(--mono); font-size: 13px; color: oklch(0.7 0.01 250); }
+  .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; background: var(--badge-bg); color: var(--text-dim); }
+  .badge.hit { background: var(--success-bg); color: var(--success); }
+  .extra-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 0 8px 12px 8px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+  .rating-badge { font-family: var(--mono); font-weight: 600; padding: 2px 8px; border-radius: 3px; background: var(--badge-bg); color: var(--text-dim); }
+  .rating-badge.buy { background: var(--success-bg); color: var(--success); }
+  .rating-badge.hold { background: var(--badge-bg); color: var(--text-dim); }
+  .rating-badge.sell { background: var(--danger-bg); color: var(--danger); }
+  .news-link { color: var(--text-dim); text-decoration: none; border-bottom: 1px dotted var(--panel-border); }
+  .news-link:hover { color: var(--text); }
+  .news-date { color: var(--text-faint); }
+  .news-sep { color: oklch(0.4 0.01 250); }
+  .error-row { font-family: var(--mono); font-size: 12px; color: var(--danger); padding: 14px 8px; }
+  .empty {
+    color: var(--text-dim);
+    text-align: center;
+    padding: 60px 20px;
+    border: 1px dashed var(--panel-border);
+    border-radius: 10px;
+    font-size: 13px;
+    margin-top: 24px;
+  }
+  @media (max-width: 720px) {
+    .col-header, .row { grid-template-columns: minmax(110px,1.4fr) minmax(50px,0.6fr) minmax(50px,0.6fr) minmax(70px,0.9fr) minmax(70px,0.8fr) minmax(90px,1fr) 1.5rem; gap: 12px; }
+    .remove-inline { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Watchlist</h1>
+      <div class="meta" id="subtitle">wird geladen…</div>
+    </div>
+    <div class="header-right">
+      <div class="summary" id="summary"></div>
+      <button class="manage-btn" id="toggleAdmin">⚙ Watchlist verwalten</button>
+    </div>
+  </header>
+
+  <div class="admin-panel" id="adminPanel">
+    <div class="admin-section">
+      <h2>Verbindung zu deinen Daten</h2>
+      <p class="hint">
+        Einmalig nötig – danach lädt diese Seite deine Kurse bei jedem Aufruf automatisch und du kannst
+        Aktien direkt hier eintragen. Gemeint ist dein <strong>privates Daten-Repository</strong>, im Format
+        <code>dein-username/watchlist-data</code>. Token: GitHub → Settings → Developer settings →
+        Fine-grained tokens → nur für dieses Repo, Berechtigung „Contents: Read and write". Der Token wird
+        ausschließlich lokal in deinem Browser gespeichert (localStorage) und nur direkt an die GitHub-API
+        gesendet – niemand außer dir sieht damit deine Watchlist.
+      </p>
+      <div class="field-grid">
+        <div class="field"><label>Daten-Repository (owner/repo)</label><input type="text" id="ghRepo" placeholder="username/watchlist-data"></div>
+        <div class="field"><label>Personal Access Token</label><input type="password" id="ghToken" placeholder="github_pat_..."></div>
+      </div>
+      <div class="admin-actions">
+        <button class="btn secondary" id="saveSettings">Zugangsdaten speichern</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h2>Neue Aktie hinzufügen</h2>
+      <div class="field-grid">
+        <div class="field"><label>Ticker*</label><input type="text" id="fTicker" placeholder="NVDA"></div>
+        <div class="field"><label>Name*</label><input type="text" id="fName" placeholder="NVIDIA Corp."></div>
+        <div class="field"><label>Sektor</label><input type="text" id="fSector" placeholder="Technologie"></div>
+        <div class="field"><label>Börse</label><input type="text" id="fExchange" placeholder="NASDAQ / XETR"></div>
+        <div class="field"><label>Kursziel</label><input type="number" step="0.01" id="fTarget" placeholder="210"></div>
+        <div class="field"><label>Einstieg von</label><input type="number" step="0.01" id="fEntryLow" placeholder="150"></div>
+        <div class="field"><label>Einstieg bis</label><input type="number" step="0.01" id="fEntryHigh" placeholder="160"></div>
+        <div class="field"><label>Notizen</label><input type="text" id="fNotes" placeholder="optional"></div>
+      </div>
+      <div class="admin-actions">
+        <button class="btn" id="addStock">Hinzufügen & auf GitHub speichern</button>
+        <button class="btn secondary" id="triggerRun">Kurse jetzt aktualisieren</button>
+      </div>
+      <div class="admin-msg" id="adminMsg"></div>
+    </div>
+
+    <div class="admin-section">
+      <h2>Aktuelle Watchlist</h2>
+      <div class="current-list" id="currentList"><span class="hint">Zugangsdaten speichern, um die Liste zu laden.</span></div>
+    </div>
+  </div>
+
+  <div class="demo-banner" id="demoBanner" hidden>
+    <strong>Testmodus</strong> – Anzeige aus der lokalen <code>status.json</code>.
+    Entfernen blendet die Zeile nur aus, es wird nichts gespeichert.
+    Für den echten Betrieb die Seite ohne <code>?demo</code> aufrufen.
+  </div>
+
+  <div id="highlights"></div>
+
+  <div class="col-header">
+    <span>Aktie</span>
+    <span>Kurs</span>
+    <span>Verand.</span>
+    <span>1J-Verlauf</span>
+    <span>Kursziel</span>
+    <span>Einstiegszone</span>
+    <span></span>
+  </div>
+
+  <div id="content"></div>
+</div>
+
+<script>
+/* ---------- Anzeige (status.json) ---------- */
+
+/* Testmodus: index.html?demo aufrufen, um das Dashboard mit der lokalen
+   status.json auszuprobieren – inklusive Entfernen-Knopf, ohne GitHub-Konto.
+   Es wird dabei nichts gespeichert; ein Banner weist deutlich darauf hin. */
+const DEMO = new URLSearchParams(location.search).has('demo');
+if (DEMO) document.getElementById('demoBanner').hidden = false;
+
+/* Schwellen für den "Aktuell relevant"-Bereich – bei Bedarf hier anpassen. */
+const NEAR_ZONE_PCT = 5;      // bis zu diesem Abstand zur Einstiegszone gilt ein Titel als "kurz davor"
+const STRONG_MOVE_PCT = 3;    // ab dieser Tagesbewegung (+/-) gilt ein Titel als auffällig
+const HIGH_UPSIDE_PCT = 30;   // ab diesem Abstand zum Kursziel gilt das Potenzial als hoch
+
+/* Holt status.json. Sind Zugangsdaten hinterlegt, wird die Datei aus dem
+   (privaten) Daten-Repo über die GitHub-API gelesen – so bleiben Watchlist und
+   Kurse privat, während diese Seite selbst öffentlich liegen darf. Ohne
+   Zugangsdaten wird die Datei neben index.html gesucht (Einzel-Repo/lokal). */
+async function fetchStatusData() {
+  const { repo, token } = getSettings();
+
+  if (repo && token && !DEMO) {
+    const res = await fetch(`https://api.github.com/repos/${repo}/contents/status.json`, {
+      headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.raw' },
+      cache: 'no-store',
+    });
+    if (res.status === 404) {
+      throw new Error('Im Repo liegt noch keine status.json – bitte einmal "Kurse jetzt aktualisieren" ausführen.');
+    }
+    if (res.status === 401 || res.status === 403) {
+      throw new Error('Zugangsdaten abgelehnt – Token abgelaufen oder ohne Zugriff auf dieses Repo.');
+    }
+    if (!res.ok) throw new Error(`GitHub API Fehler (${res.status})`);
+    return JSON.parse(await res.text());
+  }
+
+  const res = await fetch('status.json', { cache: 'no-store' });
+  if (!res.ok) throw new Error('NO_CREDENTIALS');
+  return res.json();
+}
+
+async function loadStatus() {
+  const content = document.getElementById('content');
+  const subtitle = document.getElementById('subtitle');
+  const summary = document.getElementById('summary');
+  try {
+    const data = await fetchStatusData();
+
+    const stocks = data.stocks || [];
+    const sectors = groupBySector(stocks);
+    const hitCount = stocks.filter(s => s.entry_status === 'hit').length;
+    const gen = new Date(data.generated_at);
+
+    subtitle.textContent = `Langfristiger Screener · ${stocks.length} Positionen · ${sectors.length} Sektoren`;
+    summary.innerHTML = hitCount > 0
+      ? `<span class="dot"></span><span>${hitCount} Einstiegszone(n) erreicht</span><span class="sep">|</span><span>Stand: ${gen.toLocaleString('de-DE')}</span>`
+      : `<span>Keine Einstiegszone aktuell erreicht</span><span class="sep">|</span><span>Stand: ${gen.toLocaleString('de-DE')}</span>`;
+
+    if (stocks.length === 0) {
+      content.innerHTML = '<div class="empty">Watchlist ist leer. Trage Ticker über "Watchlist verwalten" oder watchlist.json ein.</div>';
+      return;
+    }
+
+    renderHighlights(stocks);
+    content.innerHTML = sectors.map(renderSector).join('');
+  } catch (e) {
+    document.getElementById('highlights').innerHTML = '';
+    subtitle.textContent = '';
+    summary.innerHTML = '';
+    content.innerHTML = e.message === 'NO_CREDENTIALS'
+      ? `<div class="empty">
+           <strong style="color:var(--text)">Noch nicht verbunden</strong><br>
+           Öffne oben rechts <strong>⚙ Watchlist verwalten</strong> und trage einmalig dein
+           Daten-Repository und deinen Token ein. Danach lädt das Dashboard deine Kurse
+           bei jedem Aufruf automatisch – nur für dich sichtbar.
+         </div>`
+      : `<div class="empty">Konnte die Daten nicht laden.<br>${e.message}</div>`;
+  }
+}
+
+/* Abstand des Kurses zur nächstgelegenen Kante der Einstiegszone, in Prozent.
+   0 = Kurs liegt in der Zone, null = keine Zone hinterlegt. */
+function distanceToZonePct(s) {
+  if (s.price == null || s.entry_low == null || s.entry_high == null) return null;
+  if (s.price > s.entry_high) return (s.price - s.entry_high) / s.price * 100;
+  if (s.price < s.entry_low) return (s.entry_low - s.price) / s.price * 100;
+  return 0;
+}
+
+/* Bewertet, warum eine Aktie gerade relevant ist. Rückgabe null = nicht relevant.
+   Niedrigere priority = weiter oben im Highlight-Bereich. */
+function relevanceOf(s) {
+  if (s.error) return null;
+
+  if (s.entry_status === 'hit') {
+    return { priority: 1, label: 'Einstiegszone erreicht', hit: true };
+  }
+  const distance = distanceToZonePct(s);
+  if (distance != null && distance <= NEAR_ZONE_PCT) {
+    return { priority: 2, label: `Nur ${distance.toFixed(1)}% zur Einstiegszone`, hit: false };
+  }
+  if (s.change_pct != null && Math.abs(s.change_pct) >= STRONG_MOVE_PCT) {
+    const dir = s.change_pct >= 0 ? 'Kurssprung' : 'Kursrutsch';
+    return { priority: 3, label: `${dir} ${fmtPct(s.change_pct)}`, hit: false };
+  }
+  if (s.upside_pct != null && s.upside_pct >= HIGH_UPSIDE_PCT) {
+    return { priority: 4, label: `Hohes Potenzial ${fmtPct(s.upside_pct)}`, hit: false };
+  }
+  return null;
+}
+
+function renderHighlights(stocks) {
+  const el = document.getElementById('highlights');
+
+  const relevant = stocks
+    .map(s => ({ stock: s, reason: relevanceOf(s) }))
+    .filter(x => x.reason)
+    .sort((a, b) => a.reason.priority - b.reason.priority || a.stock.ticker.localeCompare(b.stock.ticker));
+
+  if (!relevant.length) {
+    el.innerHTML = '';
+    return;
+  }
+
+  const hitCount = relevant.filter(x => x.reason.hit).length;
+  const sub = hitCount > 0
+    ? `${relevant.length} Titel im Blick · davon ${hitCount} in der Einstiegszone`
+    : `${relevant.length} Titel im Blick`;
+
+  el.innerHTML = `<div class="highlights">
+    <div class="highlights-head">
+      <span class="highlights-title">Aktuell relevant</span>
+      <span class="highlights-sub">${sub}</span>
+    </div>
+    <div class="col-header">
+      <span>Aktie</span><span>Kurs</span><span>Verand.</span>
+      <span>1J-Verlauf</span><span>Kursziel</span><span>Einstiegszone</span><span></span>
+    </div>
+    ${relevant.map(x => renderStock(x.stock, x.reason)).join('')}
+  </div>`;
+}
+
+function groupBySector(stocks) {
+  const bySector = {};
+  const order = [];
+  stocks.forEach(s => {
+    const sector = s.sector || 'Sonstige';
+    if (!bySector[sector]) { bySector[sector] = []; order.push(sector); }
+    bySector[sector].push(s);
+  });
+  return order.map(name => ({ name, stocks: bySector[name] }));
+}
+
+function renderSector(sector) {
+  return `<div class="sector">
+    <div class="sector-name">${sector.name}</div>
+    ${sector.stocks.map(s => renderStock(s)).join('')}
+  </div>`;
+}
+
+function renderStock(s, reason) {
+  if (s.error) {
+    return `<div class="stock-block"><div class="error-row">${s.ticker} – Fehler: ${s.error}</div></div>`;
+  }
+
+  const changeClass = s.change_pct >= 0 ? 'up' : 'down';
+  const changeArrow = s.change_pct >= 0 ? '▲' : '▼';
+  const hit = s.entry_status === 'hit';
+
+  const targetHtml = s.target
+    ? `<span class="target">${fmt(s.target)}</span>
+       <span class="upside ${s.upside_pct >= 0 ? 'up' : 'down'}">${fmtPct(s.upside_pct)} Potenzial</span>`
+    : `<span class="target">–</span>`;
+
+  const entryHtml = (s.entry_low != null && s.entry_high != null)
+    ? `<span class="entry-range">${fmt(s.entry_low)}–${fmt(s.entry_high)}</span>
+       <span class="badge ${hit ? 'hit' : ''}">${hit ? 'Erreicht' : statusLabel(s)}</span>`
+    : `<span class="entry-range">–</span>`;
+
+  const row = `<div class="row">
+    <div class="stock-id">
+      <span class="ticker">${s.ticker}</span>
+      <span class="name">${s.name || ''}</span>
+    </div>
+    <div class="price">${fmt(s.price)}</div>
+    <div class="change ${changeClass}">${changeArrow} ${Math.abs(s.change_pct).toFixed(1)}%</div>
+    <div>${sparkline(s.history, changeClass === 'up' ? 'var(--success)' : 'var(--danger)')}</div>
+    <div class="target-block">${targetHtml}</div>
+    <div class="entry-block">${entryHtml}</div>
+    <div class="row-actions">${removeButton(s.ticker)}</div>
+  </div>`;
+
+  const extra = renderExtraRow(s, reason);
+
+  return `<div class="stock-block ${hit ? 'hit' : ''}">${row}${extra}</div>`;
+}
+
+/* Entfernen-Knopf, der beim Überfahren der Zeile erscheint. Nur sinnvoll,
+   wenn Zugangsdaten hinterlegt sind – sonst könnte ohnehin nichts gespeichert
+   werden. */
+function removeButton(ticker) {
+  const { repo, token } = getSettings();
+  if (!DEMO && (!repo || !token)) return '';
+  return `<button class="remove-inline" data-remove-row="${ticker}"
+    title="${ticker} aus der Watchlist entfernen"
+    aria-label="${ticker} aus der Watchlist entfernen">×</button>`;
+}
+
+function renderExtraRow(s, reason) {
+  const parts = [];
+  if (reason) {
+    parts.push(`<span class="reason ${reason.hit ? 'hit' : ''}">${reason.label}</span>`);
+    parts.push(`<span class="reason-sector">${s.sector || 'Sonstige'}</span>`);
+  }
+  if (s.analyst_rating) {
+    const cls = s.analyst_rating.label === 'Buy' ? 'buy' : s.analyst_rating.label === 'Sell' ? 'sell' : 'hold';
+    parts.push(`<span class="rating-badge ${cls}">${ratingLabelDe(s.analyst_rating.label)} · ${s.analyst_rating.analyst_count} Analysten</span>`);
+  }
+  if (s.analyst_target) {
+    parts.push(`<span class="rating-badge">Analysten-Ziel ${fmt(s.analyst_target)}</span>`);
+  }
+  if (s.news && s.news.length) {
+    s.news.forEach((n, i) => {
+      if (i > 0) parts.push(`<span class="news-sep">·</span>`);
+      parts.push(`<a class="news-link" href="${n.url}" target="_blank" rel="noopener">${n.headline}</a> <span class="news-date">${timeAgo(n.published_at)}</span>`);
+    });
+  }
+  if (!parts.length) return '';
+  return `<div class="extra-row">${parts.join('')}</div>`;
+}
+
+function ratingLabelDe(label) {
+  if (label === 'Buy') return 'Kaufen';
+  if (label === 'Sell') return 'Verkaufen';
+  return 'Halten';
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diffMs / 86400000);
+  if (days <= 0) return 'heute';
+  if (days === 1) return 'vor 1 Tag';
+  return `vor ${days} Tagen`;
+}
+
+function statusLabel(s) {
+  if (s.entry_status === 'near') return 'nähert sich';
+  if (s.price != null && s.entry_high != null) {
+    const distance = ((s.price - s.entry_high) / s.price) * 100;
+    return `noch ${distance.toFixed(1)}% entfernt`;
+  }
+  return 'beobachten';
+}
+
+function fmt(n) {
+  return Number(n).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtPct(n) {
+  return (n >= 0 ? '+' : '') + Number(n).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+}
+
+function sparkline(history, color) {
+  if (!history || history.length < 2) return '';
+  const w = 110, h = 32, pad = 3;
+  const min = Math.min(...history), max = Math.max(...history);
+  const range = (max - min) || 1;
+  const points = history.map((v, i) => {
+    const x = pad + (i / (history.length - 1)) * (w - pad * 2);
+    const y = pad + (1 - (v - min) / range) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return `<svg class="sparkline" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" />
+  </svg>`;
+}
+
+loadStatus();
+
+/* ---------- Verwaltung (watchlist.json über GitHub API) ---------- */
+
+function utf8ToBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
+function base64ToUtf8(str) { return decodeURIComponent(escape(atob(str))); }
+
+function getSettings() {
+  return {
+    repo: localStorage.getItem('wl_gh_repo') || '',
+    token: localStorage.getItem('wl_gh_token') || '',
+  };
+}
+
+function setAdminMsg(text, ok) {
+  const el = document.getElementById('adminMsg');
+  el.textContent = text;
+  el.className = 'admin-msg ' + (ok ? 'ok' : 'err');
+}
+
+async function ghApi(path, opts = {}) {
+  const { repo, token } = getSettings();
+  if (!repo || !token) throw new Error('Bitte zuerst GitHub-Repo und Token eintragen und speichern.');
+  const res = await fetch(`https://api.github.com/repos/${repo}/${path}`, {
+    ...opts,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+      ...(opts.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    let msg = `GitHub API Fehler (${res.status})`;
+    try { const err = await res.json(); if (err.message) msg = err.message; } catch (_) {}
+    throw new Error(msg);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+async function loadWatchlistFile() {
+  const data = await ghApi('contents/watchlist.json');
+  return { json: JSON.parse(base64ToUtf8(data.content)), sha: data.sha };
+}
+
+async function saveWatchlistFile(json, sha, message) {
+  const content = utf8ToBase64(JSON.stringify(json, null, 2));
+  await ghApi('contents/watchlist.json', {
+    method: 'PUT',
+    body: JSON.stringify({ message, content, sha }),
+  });
+}
+
+async function refreshCurrentList() {
+  const el = document.getElementById('currentList');
+  try {
+    const { json } = await loadWatchlistFile();
+    const stocks = json.stocks || [];
+    if (!stocks.length) {
+      el.innerHTML = '<span class="hint">Watchlist ist leer.</span>';
+      return;
+    }
+    el.innerHTML = stocks.map(s => `
+      <div class="current-item">
+        <span><span class="n">${s.ticker}</span> — ${s.name || ''}</span>
+        <button class="btn danger" data-remove="${s.ticker}">Entfernen</button>
+      </div>
+    `).join('');
+    el.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.addEventListener('click', () => removeStock(btn.getAttribute('data-remove')));
+    });
+  } catch (e) {
+    el.innerHTML = `<span class="hint">Konnte Watchlist nicht laden: ${e.message}</span>`;
+  }
+}
+
+async function addStock() {
+  const ticker = document.getElementById('fTicker').value.trim().toUpperCase();
+  const name = document.getElementById('fName').value.trim();
+  if (!ticker || !name) { setAdminMsg('Ticker und Name sind Pflichtfelder.', false); return; }
+
+  const stock = {
+    ticker,
+    name,
+    sector: document.getElementById('fSector').value.trim() || 'Sonstige',
+    exchange: document.getElementById('fExchange').value.trim().toUpperCase(),
+    added_date: new Date().toISOString().slice(0, 10),
+    notes: document.getElementById('fNotes').value.trim(),
+    target: parseFloat(document.getElementById('fTarget').value) || null,
+    entry_low: parseFloat(document.getElementById('fEntryLow').value) || null,
+    entry_high: parseFloat(document.getElementById('fEntryHigh').value) || null,
+  };
+
+  try {
+    setAdminMsg('Speichere …', true);
+    const { json, sha } = await loadWatchlistFile();
+    json.stocks = json.stocks || [];
+    json.stocks.push(stock);
+    await saveWatchlistFile(json, sha, `Watchlist: ${ticker} hinzugefügt`);
+    setAdminMsg(`${ticker} gespeichert. Kurse erscheinen nach dem nächsten Update-Lauf.`, true);
+    ['fTicker','fName','fSector','fExchange','fTarget','fEntryLow','fEntryHigh','fNotes'].forEach(id => document.getElementById(id).value = '');
+    refreshCurrentList();
+  } catch (e) {
+    setAdminMsg('Fehler: ' + e.message, false);
+  }
+}
+
+/* Löscht den Ticker aus watchlist.json. status.json enthält ihn bis zum
+   nächsten Kursabruf noch – deshalb blenden wir die Zeile sofort selbst aus,
+   damit die Ansicht zum tatsächlichen Stand passt. */
+async function deleteTicker(ticker) {
+  if (DEMO) {
+    hideTickerRows(ticker);   // Testmodus: nur ausblenden, nichts speichern
+    return;
+  }
+  const { json, sha } = await loadWatchlistFile();
+  json.stocks = (json.stocks || []).filter(s => s.ticker !== ticker);
+  await saveWatchlistFile(json, sha, `Watchlist: ${ticker} entfernt`);
+  hideTickerRows(ticker);
+  refreshCurrentList();
+}
+
+function hideTickerRows(ticker) {
+  document.querySelectorAll('.stock-block').forEach(block => {
+    const label = block.querySelector('.ticker');
+    if (label && label.textContent === ticker) {
+      block.style.transition = 'opacity 200ms ease';
+      block.style.opacity = '0';
+      setTimeout(() => block.remove(), 200);
+    }
+  });
+}
+
+async function removeStock(ticker) {
+  try {
+    setAdminMsg(`Entferne ${ticker} …`, true);
+    await deleteTicker(ticker);
+    setAdminMsg(`${ticker} entfernt.`, true);
+  } catch (e) {
+    setAdminMsg('Fehler: ' + e.message, false);
+  }
+}
+
+/* Entfernen direkt aus der Tabellenzeile (Knopf erscheint beim Überfahren). */
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-remove-row]');
+  if (!btn) return;
+  const ticker = btn.getAttribute('data-remove-row');
+  if (!confirm(`${ticker} aus der Watchlist entfernen?`)) return;
+  btn.disabled = true;
+  try {
+    await deleteTicker(ticker);
+  } catch (err) {
+    btn.disabled = false;
+    alert(`Konnte ${ticker} nicht entfernen: ${err.message}`);
+  }
+});
+
+async function triggerRun() {
+  try {
+    setAdminMsg('Löse Kurs-Update aus …', true);
+    await ghApi('actions/workflows/update-prices.yml/dispatches', {
+      method: 'POST',
+      body: JSON.stringify({ ref: 'main' }),
+    });
+    setAdminMsg('Update-Lauf gestartet – dauert je nach Anzahl Ticker ein paar Minuten.', true);
+  } catch (e) {
+    setAdminMsg('Fehler: ' + e.message + ' (Token braucht dafür zusätzlich die Berechtigung "Actions: Read and write".)', false);
+  }
+}
+
+document.getElementById('toggleAdmin').addEventListener('click', () => {
+  document.getElementById('adminPanel').classList.toggle('open');
+});
+
+document.getElementById('saveSettings').addEventListener('click', () => {
+  localStorage.setItem('wl_gh_repo', document.getElementById('ghRepo').value.trim());
+  localStorage.setItem('wl_gh_token', document.getElementById('ghToken').value.trim());
+  setAdminMsg('Zugangsdaten gespeichert.', true);
+  refreshCurrentList();
+  loadStatus();
+});
+
+document.getElementById('addStock').addEventListener('click', addStock);
+document.getElementById('triggerRun').addEventListener('click', triggerRun);
+
+(function initSettings() {
+  const { repo, token } = getSettings();
+  document.getElementById('ghRepo').value = repo;
+  document.getElementById('ghToken').value = token;
+  if (repo && token) refreshCurrentList();
+})();
+</script>
+</body>
+</html>
