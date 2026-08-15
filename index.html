@@ -169,11 +169,53 @@
     letter-spacing: 0.01em;
   }
   .highlights-sub { font-size: 12.5px; color: var(--text-dim); }
-  .highlights .col-header { margin-top: 8px; padding: 0 8px 12px; border-bottom-color: oklch(0.72 0.15 145 / 0.25); }
-  .highlights .stock-block { border-bottom-color: oklch(0.72 0.15 145 / 0.18); }
-  .highlights .row { border-left-color: transparent; background: transparent; }
-  .highlights .stock-block.hit .row { border-left-color: var(--success); }
-  .reason {
+
+  /* Kompakte Übersichtszeilen – bewusst ohne Chart, News und Rating.
+     Details stehen weiter unten beim jeweiligen Sektor. */
+  .hl-list { display: flex; flex-direction: column; margin-top: 6px; }
+  .hl-row {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr auto auto;
+    gap: 14px;
+    align-items: center;
+    padding: 7px 8px;
+    border-top: 1px solid oklch(0.72 0.15 145 / 0.16);
+    border-left: 2px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 130ms ease;
+    text-align: left;
+    background: none;
+    font: inherit;
+    color: inherit;
+    width: 100%;
+  }
+  .hl-row:hover, .hl-row:focus-visible {
+    background: oklch(0.72 0.15 145 / 0.09);
+    outline: none;
+  }
+  .hl-row.hit { border-left-color: var(--success); }
+  .hl-ticker {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .hl-name {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hl-price {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .hl-status {
+    font-family: var(--mono);
     font-size: 11px;
     font-weight: 600;
     padding: 2px 8px;
@@ -181,9 +223,25 @@
     background: var(--badge-bg);
     color: var(--text-dim);
     white-space: nowrap;
+    min-width: 6.5rem;
+    text-align: center;
   }
-  .reason.hit { background: var(--success-bg); color: var(--success); }
-  .reason-sector { font-size: 11px; color: var(--text-faint); }
+  .hl-status.hit { background: var(--success-bg); color: var(--success); }
+
+  /* kurzes Aufblinken, wenn man von oben zu einer Aktie springt */
+  @keyframes zielBlinken {
+    0%, 100% { background-color: transparent; }
+    30%      { background-color: oklch(0.72 0.15 145 / 0.22); }
+  }
+  .stock-block.springziel { animation: zielBlinken 1.4s ease; }
+  @media (prefers-reduced-motion: reduce) {
+    .stock-block.springziel { animation: none; outline: 2px solid var(--success); }
+  }
+
+  @media (max-width: 560px) {
+    .hl-row { grid-template-columns: 4.2rem 1fr auto; gap: 10px; }
+    .hl-name { display: none; }
+  }
 
   .col-header {
     display: grid;
@@ -404,10 +462,9 @@
 const DEMO = new URLSearchParams(location.search).has('demo');
 if (DEMO) document.getElementById('demoBanner').hidden = false;
 
-/* Schwellen für den "Aktuell relevant"-Bereich – bei Bedarf hier anpassen. */
-const NEAR_ZONE_PCT = 5;      // bis zu diesem Abstand zur Einstiegszone gilt ein Titel als "kurz davor"
-const STRONG_MOVE_PCT = 3;    // ab dieser Tagesbewegung (+/-) gilt ein Titel als auffällig
-const HIGH_UPSIDE_PCT = 30;   // ab diesem Abstand zum Kursziel gilt das Potenzial als hoch
+/* Schwelle für den "Aktuell relevant"-Bereich: bis zu diesem Abstand zur
+   Einstiegszone gilt ein Titel als "kurz davor". Höher = mehr Titel oben. */
+const NEAR_ZONE_PCT = 5;
 
 /* Holt status.json. Sind Zugangsdaten hinterlegt, wird die Datei aus dem
    (privaten) Daten-Repo über die GitHub-API gelesen – so bleiben Watchlist und
@@ -484,24 +541,20 @@ function distanceToZonePct(s) {
   return 0;
 }
 
-/* Bewertet, warum eine Aktie gerade relevant ist. Rückgabe null = nicht relevant.
-   Niedrigere priority = weiter oben im Highlight-Bereich. */
+/* Relevant ist ausschließlich, was mit der Einstiegszone zu tun hat:
+   Kurs liegt drin, oder er ist nah dran. Bewusst KEINE Kriterien wie
+   Tagesbewegung oder Kurspotenzial – die treffen auf zu viele Titel zu
+   und würden die Übersicht wieder zumüllen.
+   Rückgabe null = nicht relevant. */
 function relevanceOf(s) {
   if (s.error) return null;
 
   if (s.entry_status === 'hit') {
-    return { priority: 1, label: 'Einstiegszone erreicht', hit: true };
+    return { priority: 1, label: 'Erreicht', hit: true };
   }
   const distance = distanceToZonePct(s);
   if (distance != null && distance <= NEAR_ZONE_PCT) {
-    return { priority: 2, label: `Nur ${distance.toFixed(1)}% zur Einstiegszone`, hit: false };
-  }
-  if (s.change_pct != null && Math.abs(s.change_pct) >= STRONG_MOVE_PCT) {
-    const dir = s.change_pct >= 0 ? 'Kurssprung' : 'Kursrutsch';
-    return { priority: 3, label: `${dir} ${fmtPct(s.change_pct)}`, hit: false };
-  }
-  if (s.upside_pct != null && s.upside_pct >= HIGH_UPSIDE_PCT) {
-    return { priority: 4, label: `Hohes Potenzial ${fmtPct(s.upside_pct)}`, hit: false };
+    return { priority: 2, label: `noch ${distance.toFixed(1)}%`, hit: false, distance };
   }
   return null;
 }
@@ -521,21 +574,52 @@ function renderHighlights(stocks) {
 
   const hitCount = relevant.filter(x => x.reason.hit).length;
   const sub = hitCount > 0
-    ? `${relevant.length} Titel im Blick · davon ${hitCount} in der Einstiegszone`
-    : `${relevant.length} Titel im Blick`;
+    ? `${hitCount} in der Einstiegszone · ${relevant.length - hitCount} kurz davor`
+    : `${relevant.length} kurz vor der Einstiegszone`;
 
   el.innerHTML = `<div class="highlights">
     <div class="highlights-head">
       <span class="highlights-title">Aktuell relevant</span>
       <span class="highlights-sub">${sub}</span>
     </div>
-    <div class="col-header">
-      <span>Aktie</span><span>Kurs</span><span>Verand.</span>
-      <span>1J-Verlauf</span><span>Kursziel</span><span>Einstiegszone</span><span></span>
-    </div>
-    ${relevant.map(x => renderStock(x.stock, x.reason)).join('')}
+    <div class="hl-list">${relevant.map(x => renderCompactRow(x.stock, x.reason)).join('')}</div>
   </div>`;
 }
+
+/* Eine Übersichtszeile: Ticker, Name, Kurs, Abstand zur Zone. Mehr nicht –
+   ein Klick springt zur vollständigen Zeile im Sektor darunter. */
+function renderCompactRow(s, reason) {
+  return `<button type="button" class="hl-row ${reason.hit ? 'hit' : ''}" data-springe-zu="${s.ticker}">
+    <span class="hl-ticker">${s.ticker}</span>
+    <span class="hl-name">${s.name || ''}</span>
+    <span class="hl-price">${fmt(s.price)}</span>
+    <span class="hl-status ${reason.hit ? 'hit' : ''}">${reason.label}</span>
+  </button>`;
+}
+
+/* Klick auf eine Übersichtszeile -> zur Aktie im Sektor scrollen */
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-springe-zu]');
+  if (!btn) return;
+  const ticker = btn.getAttribute('data-springe-zu');
+  const ziel = [...document.querySelectorAll('#content .stock-block')]
+    .find(b => b.querySelector('.ticker')?.textContent === ticker);
+  if (!ziel) return;
+
+  // Sanftes Scrollen funktioniert nicht in jedem Browser zuverlässig. Deshalb
+  // prüfen wir kurz danach, ob die Aktie wirklich im Bild gelandet ist – und
+  // springen andernfalls hart hin. Entscheidend ist das Ergebnis, nicht der Weg.
+  ziel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => {
+    const r = ziel.getBoundingClientRect();
+    const imBild = r.top >= 0 && r.bottom <= window.innerHeight;
+    if (!imBild) ziel.scrollIntoView({ block: 'center' });
+  }, 400);
+
+  ziel.classList.remove('springziel');
+  void ziel.offsetWidth;          // Animation neu starten
+  ziel.classList.add('springziel');
+});
 
 function groupBySector(stocks) {
   const bySector = {};
@@ -555,7 +639,7 @@ function renderSector(sector) {
   </div>`;
 }
 
-function renderStock(s, reason) {
+function renderStock(s) {
   if (s.error) {
     return `<div class="stock-block"><div class="error-row">${s.ticker} – Fehler: ${s.error}</div></div>`;
   }
@@ -591,7 +675,7 @@ function renderStock(s, reason) {
     <div class="row-actions">${removeButton(s.ticker)}</div>
   </div>`;
 
-  const extra = renderExtraRow(s, reason);
+  const extra = renderExtraRow(s);
 
   return `<div class="stock-block ${hit ? 'hit' : ''}">${row}${extra}</div>`;
 }
@@ -607,12 +691,8 @@ function removeButton(ticker) {
     aria-label="${ticker} aus der Watchlist entfernen">×</button>`;
 }
 
-function renderExtraRow(s, reason) {
+function renderExtraRow(s) {
   const parts = [];
-  if (reason) {
-    parts.push(`<span class="reason ${reason.hit ? 'hit' : ''}">${reason.label}</span>`);
-    parts.push(`<span class="reason-sector">${s.sector || 'Sonstige'}</span>`);
-  }
   if (s.analyst_rating) {
     const cls = s.analyst_rating.label === 'Buy' ? 'buy' : s.analyst_rating.label === 'Sell' ? 'sell' : 'hold';
     parts.push(`<span class="rating-badge ${cls}">${ratingLabelDe(s.analyst_rating.label)} · ${s.analyst_rating.analyst_count} Analysten</span>`);
