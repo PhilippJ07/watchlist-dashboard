@@ -355,7 +355,8 @@
         <div class="field"><label>Name*</label><input type="text" id="fName" placeholder="NVIDIA Corp."></div>
         <div class="field"><label>Sektor</label><input type="text" id="fSector" placeholder="Technologie"></div>
         <div class="field"><label>Börse</label><input type="text" id="fExchange" placeholder="NASDAQ / XETR"></div>
-        <div class="field"><label>Kursziel</label><input type="number" step="0.01" id="fTarget" placeholder="210"></div>
+        <div class="field"><label>Kursziel von</label><input type="number" step="0.01" id="fTargetLow" placeholder="580.2"></div>
+        <div class="field"><label>Kursziel bis</label><input type="number" step="0.01" id="fTargetHigh" placeholder="836.2"></div>
         <div class="field"><label>Einstieg von</label><input type="number" step="0.01" id="fEntryLow" placeholder="150"></div>
         <div class="field"><label>Einstieg bis</label><input type="number" step="0.01" id="fEntryHigh" placeholder="160"></div>
         <div class="field"><label>Notizen</label><input type="text" id="fNotes" placeholder="optional"></div>
@@ -563,8 +564,12 @@ function renderStock(s, reason) {
   const changeArrow = s.change_pct >= 0 ? '▲' : '▼';
   const hit = s.entry_status === 'hit';
 
-  const targetHtml = s.target
-    ? `<span class="target">${fmt(s.target)}</span>
+  const zielText = (s.target_low != null && s.target_high != null)
+    ? `${fmt(s.target_low)}–${fmt(s.target_high)}`
+    : (s.target != null ? fmt(s.target) : null);
+
+  const targetHtml = zielText
+    ? `<span class="target">${zielText}</span>
        <span class="upside ${s.upside_pct >= 0 ? 'up' : 'down'}">${fmtPct(s.upside_pct)} Potenzial</span>`
     : `<span class="target">–</span>`;
 
@@ -759,7 +764,8 @@ async function addStock() {
     exchange: document.getElementById('fExchange').value.trim().toUpperCase(),
     added_date: new Date().toISOString().slice(0, 10),
     notes: document.getElementById('fNotes').value.trim(),
-    target: parseFloat(document.getElementById('fTarget').value) || null,
+    target_low: parseFloat(document.getElementById('fTargetLow').value) || null,
+    target_high: parseFloat(document.getElementById('fTargetHigh').value) || null,
     entry_low: parseFloat(document.getElementById('fEntryLow').value) || null,
     entry_high: parseFloat(document.getElementById('fEntryHigh').value) || null,
   };
@@ -771,7 +777,7 @@ async function addStock() {
     json.stocks.push(stock);
     await saveWatchlistFile(json, sha, `Watchlist: ${ticker} hinzugefügt`);
     setAdminMsg(`${ticker} gespeichert. Kurse erscheinen nach dem nächsten Update-Lauf.`, true);
-    ['fTicker','fName','fSector','fExchange','fTarget','fEntryLow','fEntryHigh','fNotes'].forEach(id => document.getElementById(id).value = '');
+    ['fTicker','fName','fSector','fExchange','fTargetLow','fTargetHigh','fEntryLow','fEntryHigh','fNotes'].forEach(id => document.getElementById(id).value = '');
     refreshCurrentList();
   } catch (e) {
     setAdminMsg('Fehler: ' + e.message, false);
