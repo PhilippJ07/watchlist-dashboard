@@ -338,6 +338,21 @@
   .upside.down { color: var(--danger); }
   .entry-block { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
   .entry-range { font-family: var(--mono); font-size: 13px; color: oklch(0.7 0.01 250); }
+  .zone-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    justify-content: space-between;
+  }
+  .zone-range {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .zone-line.hit .zone-range { color: var(--text); }
+  .zone-line.near .zone-range { color: oklch(0.7 0.01 250); }
   .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; background: var(--badge-bg); color: var(--text-dim); }
   .badge.hit { background: var(--success-bg); color: var(--success); }
   .extra-row {
@@ -415,8 +430,12 @@
         <div class="field"><label>Börse</label><input type="text" id="fExchange" placeholder="NASDAQ / XETR"></div>
         <div class="field"><label>Kursziel von</label><input type="number" step="0.01" id="fTargetLow" placeholder="580.2"></div>
         <div class="field"><label>Kursziel bis</label><input type="number" step="0.01" id="fTargetHigh" placeholder="836.2"></div>
-        <div class="field"><label>Einstieg von</label><input type="number" step="0.01" id="fEntryLow" placeholder="150"></div>
-        <div class="field"><label>Einstieg bis</label><input type="number" step="0.01" id="fEntryHigh" placeholder="160"></div>
+        <div class="field"><label>Kaufzone von</label><input type="number" step="0.01" id="fEntryLow" placeholder="57.7"></div>
+        <div class="field"><label>Kaufzone bis</label><input type="number" step="0.01" id="fEntryHigh" placeholder="60.8"></div>
+        <div class="field"><label>Nachkauf 1 von</label><input type="number" step="0.01" id="fZone2Low" placeholder="43.3"></div>
+        <div class="field"><label>Nachkauf 1 bis</label><input type="number" step="0.01" id="fZone2High" placeholder="50.8"></div>
+        <div class="field"><label>Nachkauf 2 von</label><input type="number" step="0.01" id="fZone3Low" placeholder="23.6"></div>
+        <div class="field"><label>Nachkauf 2 bis</label><input type="number" step="0.01" id="fZone3High" placeholder="29.4"></div>
         <div class="field"><label>Notizen</label><input type="text" id="fNotes" placeholder="optional"></div>
       </div>
       <div class="admin-actions">
@@ -549,12 +568,30 @@ function distanceToZonePct(s) {
 function relevanceOf(s) {
   if (s.error) return null;
 
-  if (s.entry_status === 'hit') {
-    return { priority: 1, label: 'Erreicht', hit: true };
+  const zonen = zonenVon(s);
+  if (!zonen.length) return null;
+
+  const mehrere = zonen.length > 1;
+
+  const getroffen = zonen.find(z => z.status === 'hit');
+  if (getroffen) {
+    return {
+      priority: 1, hit: true,
+      label: mehrere ? `${zoneKurzname(getroffen.label)} erreicht` : 'Erreicht',
+    };
   }
-  const distance = distanceToZonePct(s);
-  if (distance != null && distance <= NEAR_ZONE_PCT) {
-    return { priority: 2, label: `noch ${distance.toFixed(1)}%`, hit: false, distance };
+
+  const mitAbstand = zonen.filter(z => typeof z.distance_pct === 'number');
+  if (!mitAbstand.length) return null;
+  const naechste = mitAbstand.reduce((a, b) => (b.distance_pct < a.distance_pct ? b : a));
+
+  if (naechste.distance_pct <= NEAR_ZONE_PCT) {
+    return {
+      priority: 2, hit: false, distance: naechste.distance_pct,
+      label: mehrere
+        ? `${zoneKurzname(naechste.label)}: noch ${naechste.distance_pct.toFixed(1)}%`
+        : `noch ${naechste.distance_pct.toFixed(1)}%`,
+    };
   }
   return null;
 }
@@ -657,9 +694,13 @@ function renderStock(s) {
        <span class="upside ${s.upside_pct >= 0 ? 'up' : 'down'}">${fmtPct(s.upside_pct)} Potenzial</span>`
     : `<span class="target">–</span>`;
 
-  const entryHtml = (s.entry_low != null && s.entry_high != null)
-    ? `<span class="entry-range">${fmt(s.entry_low)}–${fmt(s.entry_high)}</span>
-       <span class="badge ${hit ? 'hit' : ''}">${hit ? 'Erreicht' : statusLabel(s)}</span>`
+  const zonen = zonenVon(s);
+  const entryHtml = zonen.length
+    ? zonen.map(z => `
+        <div class="zone-line ${z.status}">
+          <span class="zone-range">${fmt(z.low)}–${fmt(z.high)}</span>
+          <span class="badge ${z.status === 'hit' ? 'hit' : ''}">${zoneStatusText(z)}</span>
+        </div>`).join('')
     : `<span class="entry-range">–</span>`;
 
   const row = `<div class="row">
@@ -723,6 +764,34 @@ function timeAgo(iso) {
   if (days <= 0) return 'heute';
   if (days === 1) return 'vor 1 Tag';
   return `vor ${days} Tagen`;
+}
+
+/* Kaufzonen einer Aktie. Neues Format: s.zones (mehrere Zonen mit Status).
+   Ältere Datenstände kennen nur entry_low/entry_high – die werden hier in
+   eine einzelne Zone übersetzt, damit die Anzeige nicht leer bleibt. */
+function zonenVon(s) {
+  if (Array.isArray(s.zones) && s.zones.length) return s.zones;
+  if (s.entry_low != null && s.entry_high != null) {
+    return [{
+      label: 'Kaufzone', low: s.entry_low, high: s.entry_high,
+      status: s.entry_status || 'watching',
+      distance_pct: distanceToZonePct(s),
+    }];
+  }
+  return [];
+}
+
+function zoneStatusText(z) {
+  if (z.status === 'hit') return 'Erreicht';
+  if (z.distance_pct == null) return 'beobachten';
+  return `noch ${z.distance_pct.toFixed(1)}%`;
+}
+
+/* Kürzel für die Übersicht oben: bei mehreren Zonen zusätzlich, welche
+   gemeint ist – "Kaufzone" oder "Nachkauf 1". */
+function zoneKurzname(label) {
+  if (!label) return '';
+  return label.replace(/^Nachkaufzone\s*/i, 'Nachkauf ').trim();
 }
 
 function statusLabel(s) {
@@ -832,6 +901,24 @@ async function refreshCurrentList() {
   }
 }
 
+/* Liest die drei Zonen-Paare aus dem Formular. Leere Paare werden
+   übersprungen – wer nur eine Kaufzone hat, lässt Nachkauf 1 und 2 frei. */
+function zonenAusFormular() {
+  const paare = [
+    ['Kaufzone', 'fEntryLow', 'fEntryHigh'],
+    ['Nachkaufzone 1', 'fZone2Low', 'fZone2High'],
+    ['Nachkaufzone 2', 'fZone3Low', 'fZone3High'],
+  ];
+  const zonen = [];
+  for (const [label, idLow, idHigh] of paare) {
+    const low = parseFloat(document.getElementById(idLow).value);
+    const high = parseFloat(document.getElementById(idHigh).value);
+    if (!isFinite(low) || !isFinite(high)) continue;
+    zonen.push({ label, low: Math.min(low, high), high: Math.max(low, high) });
+  }
+  return zonen;
+}
+
 async function addStock() {
   const ticker = document.getElementById('fTicker').value.trim().toUpperCase();
   const name = document.getElementById('fName').value.trim();
@@ -846,9 +933,10 @@ async function addStock() {
     notes: document.getElementById('fNotes').value.trim(),
     target_low: parseFloat(document.getElementById('fTargetLow').value) || null,
     target_high: parseFloat(document.getElementById('fTargetHigh').value) || null,
-    entry_low: parseFloat(document.getElementById('fEntryLow').value) || null,
-    entry_high: parseFloat(document.getElementById('fEntryHigh').value) || null,
+    zones: zonenAusFormular(),
   };
+
+  if (!stock.zones.length) { setAdminMsg('Bitte mindestens die Kaufzone ausfüllen.', false); return; }
 
   try {
     setAdminMsg('Speichere …', true);
@@ -857,7 +945,9 @@ async function addStock() {
     json.stocks.push(stock);
     await saveWatchlistFile(json, sha, `Watchlist: ${ticker} hinzugefügt`);
     setAdminMsg(`${ticker} gespeichert. Kurse erscheinen nach dem nächsten Update-Lauf.`, true);
-    ['fTicker','fName','fSector','fExchange','fTargetLow','fTargetHigh','fEntryLow','fEntryHigh','fNotes'].forEach(id => document.getElementById(id).value = '');
+    ['fTicker','fName','fSector','fExchange','fTargetLow','fTargetHigh',
+     'fEntryLow','fEntryHigh','fZone2Low','fZone2High','fZone3Low','fZone3High',
+     'fNotes'].forEach(id => document.getElementById(id).value = '');
     refreshCurrentList();
   } catch (e) {
     setAdminMsg('Fehler: ' + e.message, false);
