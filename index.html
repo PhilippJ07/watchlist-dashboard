@@ -83,29 +83,27 @@
   .chip.ruhig .dot { background: var(--text-faint); box-shadow: none; }
 
   .manage-btn {
-    font-family: var(--mono);
-    font-size: 12.5px;
-    font-weight: 600;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 640;
     line-height: 1;
-    color: var(--text);
-    background: var(--panel);
-    border: 1px solid var(--panel-border);
-    border-radius: 8px;
-    padding: 10px 15px;
+    color: var(--bg);
+    background: oklch(0.97 0.002 250);
+    border: 1px solid transparent;
+    border-radius: 20px;
+    padding: 11px 20px;
     cursor: pointer;
-    transition: background-color 130ms ease, border-color 130ms ease, transform 90ms ease;
+    transition: background-color 130ms ease, transform 90ms ease, box-shadow 130ms ease;
   }
   .manage-btn:hover {
-    background: var(--row-hover);
-    border-color: var(--accent);
-    color: var(--accent);
+    background: #fff;
+    box-shadow: 0 3px 14px -4px oklch(0.97 0.002 250 / 0.45);
   }
   .manage-btn:active { transform: translateY(1px); }
   .manage-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .manage-btn[aria-expanded="true"] {
-    background: var(--accent-soft, oklch(0.75 0.14 250 / 0.12));
-    border-color: var(--accent);
-    color: var(--accent);
+    background: var(--accent);
+    color: var(--bg);
   }
 
   .admin-panel {
@@ -305,6 +303,16 @@
     color: var(--text-dim); min-height: 1.2em;
   }
   .dlg-aktionen { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .dlg-schnell { display: flex; gap: 6px; margin-top: 12px; }
+  .dlg-schnell button {
+    flex: 1; font-family: var(--mono); font-size: 11.5px;
+    padding: 6px 0; border-radius: 5px; cursor: pointer;
+    border: 1px solid var(--panel-border); background: transparent; color: var(--text-dim);
+    transition: color 130ms ease, border-color 130ms ease;
+  }
+  .dlg-schnell button:hover, .dlg-schnell button:focus-visible {
+    color: var(--accent); border-color: var(--accent); outline: none;
+  }
 
   /* ---------- Portfolio ---------- */
   .pf {
@@ -316,26 +324,71 @@
   }
   .pf-head {
     display: flex;
-    align-items: baseline;
+    align-items: flex-end;
     justify-content: space-between;
-    gap: 12px;
+    gap: 24px;
     flex-wrap: wrap;
-    padding: 16px 8px 10px;
+    padding: 18px 8px 16px;
+    border-bottom: 1px solid var(--panel-border);
+    margin-bottom: 16px;
   }
-  .pf-title { font-size: 16px; font-weight: 600; color: var(--accent); }
-  .pf-total { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; font-family: var(--mono); }
-  .pf-total .wert { font-size: 18px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
-  .pf-total .gv { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .pf-total .eingesetzt { font-size: 12px; color: var(--text-dim); }
+  .pf-ringblock { flex: none; display: flex; flex-direction: column; gap: 14px; }
+  .pf-titelblock { display: flex; flex-direction: column; gap: 3px; }
+  .pf-title { font-size: 19px; font-weight: 640; color: var(--text); letter-spacing: -0.01em; }
+  .pf-untertitel { font-size: 12.5px; color: var(--text-dim); }
+  .pf-kennzahlen { display: flex; gap: 34px; flex-wrap: wrap; }
+  .kz { display: flex; flex-direction: column; gap: 6px; }
+  .kz-label {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.09em;
+    text-transform: uppercase; color: var(--text-faint);
+  }
+  .kz-wert {
+    font-family: var(--mono); font-size: 21px; font-weight: 600; line-height: 1;
+    color: var(--text); font-variant-numeric: tabular-nums;
+  }
+  .kz-wert.up { color: var(--success); }
+  .kz-wert.down { color: var(--danger); }
+  .kz-neben { font-size: 13px; font-weight: 500; margin-left: 7px; }
+
+  .pf-real {
+    border-top: 1px solid var(--panel-border);
+    margin-top: 12px; padding: 13px 8px 4px;
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  }
+  .pf-real .titel { font-size: 13px; font-weight: 600; color: var(--text); }
+  .pf-real .summe { font-family: var(--mono); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pf-real .liste { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+  .pf-real .eintrag {
+    font-family: var(--mono); font-size: 11px; padding: 3px 9px;
+    border-radius: 4px; background: var(--badge-bg); color: var(--text-dim); white-space: nowrap;
+  }
   .gv.up { color: var(--success); }
   .gv.down { color: var(--danger); }
 
   .pf-body { display: flex; gap: 18px; align-items: flex-start; flex-wrap: wrap; padding: 0 8px; }
   .pf-ring { flex: none; }
-  .pf-legende { display: flex; flex-direction: column; gap: 5px; font-size: 12px; min-width: 9rem; }
-  .pf-legende div { display: flex; align-items: center; gap: 7px; color: var(--text-dim); }
+  .pf-legende { display: flex; flex-direction: column; gap: 1px; font-size: 12px; min-width: 9rem; }
+  .pf-legende div {
+    display: flex; align-items: center; gap: 7px; color: var(--text-dim);
+    padding: 4px 7px; border-radius: 5px;
+    transition: background-color 140ms ease, color 140ms ease;
+  }
+  .pf-legende div.aktiv { background: var(--row-hover); color: var(--text); }
   .pf-legende .farbe { width: 9px; height: 9px; border-radius: 2px; flex: none; }
-  .pf-legende .anteil { margin-left: auto; font-family: var(--mono); color: var(--text-faint); }
+  .pf-legende .anteil { margin-left: auto; font-family: var(--mono); color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+  /* Ring: gehovertes Segment wird dicker, die übrigen treten zurück.
+     Bewusst über stroke-width statt transform – ein CSS-transform würde die
+     rotate()-Angabe im SVG überschreiben und das Segment verspringen lassen. */
+  .pf-ring { overflow: visible; }
+  .pf-ring .seg { transition: stroke-width 170ms ease, opacity 170ms ease; }
+  .pf-ring.dimmen .seg:not(.aktiv) { opacity: 0.32; }
+  .pf-ring .seg.aktiv { stroke-width: 24; }
+  .pf-zeile.aktiv { background: var(--row-hover); }
+  .pf-aktionen { display: flex; gap: 5px; justify-content: flex-end; }
+  @media (prefers-reduced-motion: reduce) {
+    .pf-ring .seg { transition: opacity 140ms ease; }
+  }
 
   .pf-liste { flex: 1 1 22rem; display: flex; flex-direction: column; }
   .pf-zeile {
@@ -399,7 +452,7 @@
 
   .col-header {
     display: grid;
-    grid-template-columns: minmax(130px,1.6fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(90px,1fr) minmax(80px,0.9fr) minmax(110px,1.2fr) 1.75rem;
+    grid-template-columns: minmax(130px,1.6fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(90px,1fr) minmax(80px,0.9fr) minmax(110px,1.2fr) minmax(9.5rem, auto);
     gap: 20px;
     padding: 16px 16px 12px;
     border-bottom: 1px solid var(--panel-border);
@@ -446,7 +499,7 @@
   }
   .row {
     display: grid;
-    grid-template-columns: minmax(130px,1.6fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(90px,1fr) minmax(80px,0.9fr) minmax(110px,1.2fr) 1.75rem;
+    grid-template-columns: minmax(130px,1.6fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(90px,1fr) minmax(80px,0.9fr) minmax(110px,1.2fr) minmax(9.5rem, auto);
     gap: 20px;
     align-items: center;
     padding: 14px 8px;
@@ -454,7 +507,7 @@
     border-radius: 4px;
   }
   .stock-block.hit .row { border-left-color: var(--success); background: var(--success-row); }
-  .row-actions { display: flex; justify-content: flex-end; }
+  .row-actions { display: flex; gap: 5px; align-items: center; justify-content: flex-end; }
   .remove-inline {
     opacity: 0;
     width: 1.5rem;
@@ -580,7 +633,10 @@
       <div class="field-grid">
         <div class="field"><label>Ticker*</label><input type="text" id="fTicker" placeholder="NVDA"></div>
         <div class="field"><label>Name*</label><input type="text" id="fName" placeholder="NVIDIA Corp."></div>
-        <div class="field"><label>Sektor</label><input type="text" id="fSector" placeholder="Technologie"></div>
+        <div class="field"><label>Sektor</label>
+          <input type="text" id="fSector" list="sektorListe" placeholder="wählen oder neu eingeben" autocomplete="off">
+          <datalist id="sektorListe"></datalist>
+        </div>
         <div class="field"><label>Börse</label><input type="text" id="fExchange" placeholder="NASDAQ / XETR"></div>
         <div class="field"><label>Kursziel von</label><input type="number" step="0.01" id="fTargetLow" placeholder="580.2"></div>
         <div class="field"><label>Kursziel bis</label><input type="number" step="0.01" id="fTargetHigh" placeholder="836.2"></div>
@@ -594,6 +650,7 @@
       </div>
       <div class="admin-actions">
         <button class="btn" id="addStock">Hinzufügen & auf GitHub speichern</button>
+        <button class="btn secondary" id="abbrechenBearbeiten" hidden>Bearbeiten abbrechen</button>
         <button class="btn secondary" id="triggerRun">Kurse jetzt aktualisieren</button>
       </div>
       <div class="admin-msg" id="adminMsg"></div>
@@ -614,6 +671,39 @@
   <div id="highlights"></div>
 
   <div id="portfolio"></div>
+
+  <dialog id="verkaufDialog" class="dlg">
+    <form method="dialog" id="verkaufForm">
+      <h2 id="vkTitel">Teilverkauf</h2>
+      <p class="dlg-hint" id="vkHinweis"></p>
+      <div class="dlg-felder">
+        <div class="field">
+          <label for="vkStueck">Verkaufte Stückzahl</label>
+          <input type="number" step="0.0001" min="0" id="vkStueck" required>
+        </div>
+        <div class="field">
+          <label for="vkKurs">Verkaufskurs</label>
+          <input type="number" step="0.0001" min="0" id="vkKurs" required>
+        </div>
+        <div class="field">
+          <label for="vkDatum">Datum</label>
+          <input type="date" id="vkDatum">
+        </div>
+      </div>
+      <div class="dlg-schnell" id="vkSchnell">
+        <button type="button" data-anteil="0.25">25 %</button>
+        <button type="button" data-anteil="0.5">50 %</button>
+        <button type="button" data-anteil="0.75">75 %</button>
+        <button type="button" data-anteil="1">Alles</button>
+      </div>
+      <p class="dlg-rechnung" id="vkRechnung"></p>
+      <div class="dlg-aktionen">
+        <button type="button" class="btn secondary" id="vkAbbrechen">Abbrechen</button>
+        <button type="submit" class="btn">Verkauf buchen</button>
+      </div>
+      <div class="admin-msg" id="vkMsg"></div>
+    </form>
+  </dialog>
 
   <dialog id="einstiegDialog" class="dlg">
     <form method="dialog" id="einstiegForm">
@@ -649,7 +739,7 @@
     <span>1J-Verlauf</span>
     <span>Kursziel</span>
     <span>Einstiegszone</span>
-    <span></span>
+    <span>Aktion</span>
   </div>
 
   <div id="content"></div>
@@ -708,6 +798,7 @@ async function loadStatus() {
     // holen wir sie zusätzlich direkt aus der Watchlist.
     await ergaenzePositionen(stocks);
     aktuelleStocks = stocks;
+    aktualisiereSektorListe(stocks);
 
     const sectors = groupBySector(stocks);
     const hitCount = stocks.filter(s => s.entry_status === 'hit').length;
@@ -913,8 +1004,108 @@ document.addEventListener('click', (e) => {
   const plus = e.target.closest('[data-einstieg]');
   if (plus) { oeffneEinstiegDialog(plus.getAttribute('data-einstieg')); return; }
 
+  const verkauf = e.target.closest('[data-verkauf]');
+  if (verkauf) { oeffneVerkaufDialog(verkauf.getAttribute('data-verkauf')); return; }
+
+  const bearbeiten = e.target.closest('[data-bearbeiten]');
+  if (bearbeiten) { oeffneBearbeiten(bearbeiten.getAttribute('data-bearbeiten')); return; }
+
   const weg = e.target.closest('[data-position-weg]');
   if (weg) { entfernePositionen(weg.getAttribute('data-position-weg')); }
+});
+
+/* ---------- Teilverkauf ---------- */
+
+const vkDlg = document.getElementById('verkaufDialog');
+let vkTicker = null, vkBestand = 0, vkSchnitt = 0;
+
+function vkRechnungAktualisieren() {
+  const stueck = parseFloat(document.getElementById('vkStueck').value);
+  const kurs = parseFloat(document.getElementById('vkKurs').value);
+  const el = document.getElementById('vkRechnung');
+  if (!(stueck > 0) || !(kurs > 0)) { el.textContent = ''; return; }
+  const erloes = stueck * kurs;
+  const gewinn = stueck * (kurs - vkSchnitt);
+  const rest = Math.max(vkBestand - stueck, 0);
+  el.textContent = `Erlös ${fmt(erloes)} · realisiert ${gewinn >= 0 ? '+' : ''}${fmt(gewinn)}`
+    + ` · Rest ${rest < 1e-9 ? 'keiner (Position geschlossen)' : rest.toLocaleString('de-DE', { maximumFractionDigits: 4 }) + ' Stück'}`;
+}
+
+function oeffneVerkaufDialog(ticker) {
+  const s = aktuelleStocks.find(x => x.ticker === ticker);
+  if (!s) return;
+  const p = rechnePosition(s);
+  if (!p || !p.offen) return;
+
+  vkTicker = ticker; vkBestand = p.stueck; vkSchnitt = p.schnitt;
+  document.getElementById('vkTitel').textContent = `${ticker} – Teilverkauf`;
+  document.getElementById('vkHinweis').textContent =
+    `Bestand ${p.stueck.toLocaleString('de-DE', { maximumFractionDigits: 4 })} Stück · `
+    + `Ø-Einstieg ${fmt(p.schnitt)} · aktueller Kurs ${fmt(p.kurs)}`;
+  document.getElementById('vkStueck').value = '';
+  document.getElementById('vkStueck').max = p.stueck;
+  document.getElementById('vkKurs').value = p.kurs;
+  document.getElementById('vkDatum').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('vkMsg').textContent = '';
+  vkRechnungAktualisieren();
+  vkDlg.showModal();
+  document.getElementById('vkStueck').focus();
+}
+
+['vkStueck', 'vkKurs'].forEach(id =>
+  document.getElementById(id).addEventListener('input', vkRechnungAktualisieren));
+
+document.getElementById('vkSchnell').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-anteil]');
+  if (!b) return;
+  const anteil = parseFloat(b.getAttribute('data-anteil'));
+  document.getElementById('vkStueck').value = +(vkBestand * anteil).toFixed(4);
+  vkRechnungAktualisieren();
+});
+
+document.getElementById('vkAbbrechen').addEventListener('click', () => vkDlg.close());
+
+document.getElementById('verkaufForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const stueck = parseFloat(document.getElementById('vkStueck').value);
+  const kurs = parseFloat(document.getElementById('vkKurs').value);
+  const datum = document.getElementById('vkDatum').value || new Date().toISOString().slice(0, 10);
+  const msg = document.getElementById('vkMsg');
+
+  if (!(stueck > 0) || !(kurs > 0)) {
+    msg.className = 'admin-msg err';
+    msg.textContent = 'Stückzahl und Verkaufskurs müssen größer als 0 sein.';
+    return;
+  }
+  if (stueck > vkBestand + 1e-9) {
+    msg.className = 'admin-msg err';
+    msg.textContent = `Du hältst nur ${vkBestand.toLocaleString('de-DE', { maximumFractionDigits: 4 })} Stück.`;
+    return;
+  }
+
+  // Durchschnitt zum Verkaufszeitpunkt festhalten – spätere Nachkäufe sollen
+  // den bereits realisierten Gewinn nicht rückwirkend verändern.
+  const neu = { date: datum, price: kurs, shares: stueck, cost_per_share: vkSchnitt };
+  const s = aktuelleStocks.find(x => x.ticker === vkTicker);
+
+  try {
+    msg.className = 'admin-msg ok';
+    msg.textContent = 'Speichere …';
+    if (!DEMO) {
+      const { json, sha } = await loadWatchlistFile();
+      const eintrag = (json.stocks || []).find(x => x.ticker === vkTicker);
+      if (!eintrag) throw new Error(`${vkTicker} steht nicht in der Watchlist.`);
+      eintrag.sales = [...(eintrag.sales || []), neu];
+      await saveWatchlistFile(json, sha, `Verkauf gebucht: ${vkTicker} ${stueck} @ ${kurs}`);
+    }
+    if (s) s.sales = [...verkaeufeVon(s), neu];
+    vkDlg.close();
+    renderPortfolio(aktuelleStocks);
+    renderHighlights(aktuelleStocks);
+  } catch (err) {
+    msg.className = 'admin-msg err';
+    msg.textContent = 'Fehler: ' + err.message;
+  }
 });
 
 async function entfernePositionen(ticker) {
@@ -997,33 +1188,59 @@ function positionenVon(s) {
 
 /* Rechnet je Aktie zusammen: eingesetztes Geld, Stückzahl, heutiger Wert.
    Stückzahl = Betrag / Einstiegskurs. Gebühren bleiben außen vor. */
+function verkaeufeVon(s) { return Array.isArray(s.sales) ? s.sales : []; }
+
+/* Durchschnittskostenmethode: Ein Teilverkauf senkt die Stückzahl, lässt den
+   Durchschnittskurs aber unberührt. Der realisierte Gewinn wird beim Verkauf
+   mit dem damaligen Durchschnitt festgehalten (cost_per_share), damit spätere
+   Nachkäufe ihn nicht rückwirkend verändern. */
+function rechnePosition(s) {
+  const kaeufe = positionenVon(s).filter(p => p.amount > 0 && p.price > 0);
+  if (!kaeufe.length || s.price == null) return null;
+  const verkaeufe = verkaeufeVon(s).filter(v => v.shares > 0 && v.price > 0);
+
+  const stueckGekauft = kaeufe.reduce((a, p) => a + p.amount / p.price, 0);
+  const summeGekauft = kaeufe.reduce((a, p) => a + p.amount, 0);
+  const schnitt = summeGekauft / stueckGekauft;
+
+  const stueckVerkauft = verkaeufe.reduce((a, v) => a + v.shares, 0);
+  const realisiert = verkaeufe.reduce(
+    (a, v) => a + v.shares * (v.price - (v.cost_per_share ?? schnitt)), 0);
+
+  const stueck = Math.max(stueckGekauft - stueckVerkauft, 0);
+  const eingesetzt = stueck * schnitt;
+  const wert = stueck * s.price;
+
+  return {
+    ticker: s.ticker, name: s.name || '', anzahl: kaeufe.length,
+    anzahlVerkaeufe: verkaeufe.length,
+    stueck, schnitt, kurs: s.price, eingesetzt, wert,
+    gv: wert - eingesetzt,
+    gvPct: eingesetzt > 0 ? (wert - eingesetzt) / eingesetzt * 100 : 0,
+    realisiert, offen: stueck > 1e-9, waehrung: s.currency || '',
+  };
+}
+
 function berechnePortfolio(stocks) {
-  const posten = [];
-  let eingesetzt = 0, wert = 0;
+  const alle = [];
+  let eingesetzt = 0, wert = 0, realisiert = 0;
 
   stocks.forEach(s => {
-    const eintraege = positionenVon(s).filter(p => p.amount > 0 && p.price > 0);
-    if (!eintraege.length || s.price == null) return;
-
-    const summe = eintraege.reduce((a, p) => a + p.amount, 0);
-    const stueck = eintraege.reduce((a, p) => a + p.amount / p.price, 0);
-    const heute = stueck * s.price;
-    const schnitt = summe / stueck;
-
-    eingesetzt += summe;
-    wert += heute;
-    posten.push({
-      ticker: s.ticker, name: s.name || '', anzahl: eintraege.length,
-      eingesetzt: summe, stueck, schnitt, kurs: s.price, wert: heute,
-      gv: heute - summe, gvPct: (heute - summe) / summe * 100,
-      waehrung: s.currency || '',
-    });
+    const p = rechnePosition(s);
+    if (!p) return;
+    realisiert += p.realisiert;
+    alle.push(p);
+    if (!p.offen) return;              // komplett verkauft: zählt nur realisiert
+    eingesetzt += p.eingesetzt;
+    wert += p.wert;
   });
 
-  posten.sort((a, b) => b.wert - a.wert);
+  const posten = alle.filter(p => p.offen).sort((a, b) => b.wert - a.wert);
   posten.forEach((p, i) => { p.farbe = RING_FARBEN[i % RING_FARBEN.length]; });
-  return { posten, eingesetzt, wert, gv: wert - eingesetzt,
-           gvPct: eingesetzt ? (wert - eingesetzt) / eingesetzt * 100 : 0 };
+
+  return { posten, alle, eingesetzt, wert, realisiert,
+           gv: wert - eingesetzt,
+           gvPct: eingesetzt > 0 ? (wert - eingesetzt) / eingesetzt * 100 : 0 };
 }
 
 /* Ringdiagramm der Aufteilung – reines SVG, jeder Posten ein Kreisbogen. */
@@ -1035,7 +1252,8 @@ function ringDiagramm(posten, gesamt) {
   const boegen = posten.map(p => {
     const anteil = gesamt ? p.wert / gesamt : 0;
     const laenge = anteil * umfang;
-    const bogen = `<circle cx="${mitte}" cy="${mitte}" r="${r}" fill="none"
+    const bogen = `<circle class="seg" data-ring="${p.ticker}"
+      cx="${mitte}" cy="${mitte}" r="${r}" fill="none"
       stroke="${p.farbe}" stroke-width="${dicke}"
       stroke-dasharray="${laenge.toFixed(2)} ${(umfang - laenge).toFixed(2)}"
       stroke-dashoffset="${(-offset).toFixed(2)}"
@@ -1053,57 +1271,128 @@ function ringDiagramm(posten, gesamt) {
 
 function renderPortfolio(stocks) {
   const el = document.getElementById('portfolio');
-  const { posten, eingesetzt, wert, gv, gvPct } = berechnePortfolio(stocks);
+  const { posten, alle, eingesetzt, wert, realisiert, gv, gvPct } = berechnePortfolio(stocks);
 
-  if (!posten.length) {
+  if (!alle.length) {
     el.innerHTML = darfSchreiben()
-      ? `<div class="pf"><div class="pf-head"><span class="pf-title">Mein Portfolio</span></div>
-           <div class="pf-leer">Noch keine Einstiege eingetragen. Fahre oben in <strong>Aktuell relevant</strong>
-           über eine Aktie und klicke auf <strong>+</strong>, um einen Kaufbetrag zu erfassen.</div></div>`
+      ? `<div class="pf">
+           <div class="pf-head"><div class="pf-titelblock">
+             <span class="pf-title">Getätigte Einstiege</span>
+             <span class="pf-untertitel">Noch keine Position erfasst</span>
+           </div></div>
+           <div class="pf-leer">Fahre unten in der Tabelle über eine Aktie und klicke auf
+             <strong>+ Einstieg erfassen</strong>. Danach siehst du hier die Entwicklung seit deinem Einstieg.</div>
+         </div>`
       : '';
     return;
   }
 
   const richtung = gv >= 0 ? 'up' : 'down';
   const legende = posten.map(p => `
-    <div><span class="farbe" style="background:${p.farbe}"></span>${p.ticker}
-      <span class="anteil">${(p.wert / wert * 100).toFixed(0)}%</span></div>`).join('');
+    <div data-ring-legende="${p.ticker}"><span class="farbe" style="background:${p.farbe}"></span>${p.ticker}
+      <span class="anteil">${(p.wert / wert * 100).toFixed(1)}%</span></div>`).join('');
 
   const zeilen = posten.map(p => `
-    <div class="pf-zeile">
+    <div class="pf-zeile" data-ring-zeile="${p.ticker}">
       <span class="tk">${p.ticker}</span>
-      <span class="nm">${p.name}${p.anzahl > 1 ? ` · ${p.anzahl} Einstiege` : ''}</span>
+      <span class="nm">${p.name}${p.anzahl > 1 ? ` · ${p.anzahl} Käufe` : ''}</span>
       <span class="num dim versteckbar">${fmt(p.eingesetzt)}</span>
       <span class="num dim">${fmt(p.schnitt)} → ${fmt(p.kurs)}</span>
       <span class="num gv ${p.gv >= 0 ? 'up' : 'down'}">${fmtPct(p.gvPct)}</span>
-      <button type="button" class="pf-weg" data-position-weg="${p.ticker}"
-        title="Einstiege für ${p.ticker} entfernen" aria-label="Einstiege für ${p.ticker} entfernen">×</button>
+      <span class="pf-aktionen">
+        <button type="button" class="pf-weg" data-verkauf="${p.ticker}"
+          title="Teilverkauf für ${p.ticker}" aria-label="Teilverkauf für ${p.ticker}">↧</button>
+        <button type="button" class="pf-weg gefahr" data-position-weg="${p.ticker}"
+          title="Alle Einstiege für ${p.ticker} entfernen" aria-label="Alle Einstiege für ${p.ticker} entfernen">×</button>
+      </span>
     </div>`).join('');
+
+  const mitVerkauf = alle.filter(p => p.anzahlVerkaeufe);
+  const realisiertBlock = mitVerkauf.length
+    ? `<div class="pf-real">
+         <span class="titel">Realisierte Gewinne</span>
+         <span class="summe gv ${realisiert >= 0 ? 'up' : 'down'}">${realisiert >= 0 ? '+' : ''}${fmt(realisiert)}</span>
+         <span class="liste">${mitVerkauf.map(p =>
+           `<span class="eintrag">${p.ticker} ${p.realisiert >= 0 ? '+' : ''}${fmt(p.realisiert)}${p.offen ? '' : ' · geschlossen'}</span>`
+         ).join('')}</span>
+       </div>`
+    : '';
 
   el.innerHTML = `<div class="pf">
     <div class="pf-head">
-      <span class="pf-title">Mein Portfolio</span>
-      <span class="pf-total">
-        <span class="wert">${fmt(wert)}</span>
-        <span class="gv ${richtung}">${fmtPct(gvPct)} · ${gv >= 0 ? '+' : ''}${fmt(gv)}</span>
-        <span class="eingesetzt">eingesetzt ${fmt(eingesetzt)}</span>
-      </span>
+      <div class="pf-titelblock">
+        <span class="pf-title">Getätigte Einstiege</span>
+        <span class="pf-untertitel">${posten.length} Position${posten.length === 1 ? '' : 'en'} · Entwicklung seit Einstieg</span>
+      </div>
+      <div class="pf-kennzahlen">
+        <div class="kz"><span class="kz-label">Investiert</span><span class="kz-wert">${fmt(eingesetzt)}</span></div>
+        <div class="kz"><span class="kz-label">Aktueller Wert</span><span class="kz-wert">${fmt(wert)}</span></div>
+        <div class="kz"><span class="kz-label">Gesamtperformance</span>
+          <span class="kz-wert ${richtung}">${fmtPct(gvPct)}<span class="kz-neben">${gv >= 0 ? '+' : ''}${fmt(gv)}</span></span>
+        </div>
+      </div>
     </div>
     <div class="pf-body">
-      ${ringDiagramm(posten, wert)}
-      <div class="pf-legende">${legende}</div>
+      <div class="pf-ringblock">
+        ${ringDiagramm(posten, wert)}
+        <div class="pf-legende">${legende}</div>
+      </div>
       <div class="pf-liste">
         <div class="pf-zeile kopf">
-          <span>Aktie</span><span></span>
-          <span class="num versteckbar">Einsatz</span>
+          <span>Position</span><span></span>
+          <span class="num versteckbar">Investiert</span>
           <span class="num">Ø → heute</span>
-          <span class="num">Ergebnis</span><span></span>
+          <span class="num">Entwicklung</span><span></span>
         </div>
         ${zeilen}
       </div>
     </div>
+    ${realisiertBlock}
   </div>`;
 }
+
+/* Füllt die Sektor-Vorschlagsliste aus den bereits vergebenen Sektoren.
+   Verhindert Dopplungen wie "Healthcare" neben "Health Care" – tippen
+   bleibt trotzdem möglich, es ist eine Vorschlagsliste, keine Sperre. */
+function aktualisiereSektorListe(stocks) {
+  const dl = document.getElementById('sektorListe');
+  if (!dl) return;
+  const sektoren = [...new Set(stocks.map(s => s.sector).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'de'));
+  dl.innerHTML = sektoren.map(s => `<option value="${s}"></option>`).join('');
+}
+
+/* Weist einen frei getippten Sektor einem vorhandenen zu, wenn er sich nur
+   in Schreibweise unterscheidet ("health care" -> "Healthcare"). */
+function sektorVereinheitlichen(eingabe, stocks) {
+  const roh = (eingabe || '').trim();
+  if (!roh) return 'Sonstige';
+  const schluessel = t => t.toLowerCase().replace(/[\s\-_.]/g, '');
+  const treffer = [...new Set(stocks.map(s => s.sector).filter(Boolean))]
+    .find(s => schluessel(s) === schluessel(roh));
+  return treffer || roh;
+}
+
+/* Ring, Legende und Positionszeile heben sich gegenseitig hervor */
+function ringHervorheben(ticker) {
+  const svg = document.querySelector('.pf-ring');
+  if (svg) svg.classList.toggle('dimmen', Boolean(ticker));
+  ['data-ring', 'data-ring-legende', 'data-ring-zeile'].forEach(attr => {
+    document.querySelectorAll(`[${attr}]`).forEach(e =>
+      e.classList.toggle('aktiv', e.getAttribute(attr) === ticker));
+  });
+}
+
+document.addEventListener('mouseover', (e) => {
+  const t = e.target.closest('[data-ring], [data-ring-legende], [data-ring-zeile]');
+  if (!t) return;
+  ringHervorheben(t.getAttribute('data-ring') || t.getAttribute('data-ring-legende')
+    || t.getAttribute('data-ring-zeile'));
+});
+document.addEventListener('mouseout', (e) => {
+  const t = e.target.closest('[data-ring], [data-ring-legende], [data-ring-zeile]');
+  if (t && !t.contains(e.relatedTarget)) ringHervorheben(null);
+});
 
 function groupBySector(stocks) {
   const bySector = {};
@@ -1160,7 +1449,7 @@ function renderStock(s) {
     <div>${sparkline(s.history, changeClass === 'up' ? 'var(--success)' : 'var(--danger)')}</div>
     <div class="target-block">${targetHtml}</div>
     <div class="entry-block">${entryHtml}</div>
-    <div class="row-actions">${removeButton(s.ticker)}</div>
+    <div class="row-actions">${zeilenAktionen(s)}</div>
   </div>`;
 
   const extra = renderExtraRow(s);
@@ -1171,12 +1460,19 @@ function renderStock(s) {
 /* Entfernen-Knopf, der beim Überfahren der Zeile erscheint. Nur sinnvoll,
    wenn Zugangsdaten hinterlegt sind – sonst könnte ohnehin nichts gespeichert
    werden. */
-function removeButton(ticker) {
-  const { repo, token } = getSettings();
-  if (!DEMO && (!repo || !token)) return '';
-  return `<button class="remove-inline" data-remove-row="${ticker}"
-    title="${ticker} aus der Watchlist entfernen"
-    aria-label="${ticker} aus der Watchlist entfernen">×</button>`;
+/* Aktionen je Aktie: Einstieg erfassen, bearbeiten, entfernen.
+   Erscheinen erst beim Überfahren der Zeile, damit die Tabelle ruhig bleibt. */
+function zeilenAktionen(s) {
+  if (!darfSchreiben()) return '';
+  const hatPosition = positionenVon(s).length > 0;
+  return `
+    <button class="aktion-btn ${hatPosition ? 'gesetzt' : ''}" data-einstieg="${s.ticker}"
+      title="Einstieg für ${s.ticker} erfassen">${hatPosition ? '✓ im Portfolio' : '+ Einstieg erfassen'}</button>
+    <button class="remove-inline" data-bearbeiten="${s.ticker}"
+      title="${s.ticker} bearbeiten" aria-label="${s.ticker} bearbeiten">✎</button>
+    <button class="remove-inline" data-remove-row="${s.ticker}"
+      title="${s.ticker} aus der Watchlist entfernen"
+      aria-label="${s.ticker} aus der Watchlist entfernen">×</button>`;
 }
 
 function renderExtraRow(s) {
@@ -1368,6 +1664,53 @@ function zonenAusFormular() {
   return zonen;
 }
 
+/* Wenn gesetzt, ersetzt "Speichern" den vorhandenen Eintrag statt einen
+   neuen anzulegen. Wird über das Stift-Symbol in der Tabelle gefüllt. */
+let bearbeiteTicker = null;
+
+function formularLeeren() {
+  ['fTicker','fName','fSector','fExchange','fTargetLow','fTargetHigh',
+   'fEntryLow','fEntryHigh','fZone2Low','fZone2High','fZone3Low','fZone3High',
+   'fNotes'].forEach(id => document.getElementById(id).value = '');
+  bearbeiteTicker = null;
+  document.getElementById('addStock').textContent = 'Hinzufügen & auf GitHub speichern';
+  document.getElementById('abbrechenBearbeiten').hidden = true;
+}
+
+/* Öffnet das Verwalten-Panel mit den Werten der Aktie – so lassen sich
+   Kaufzonen und Kursziele ergänzen, ohne die Aktie löschen zu müssen. */
+function oeffneBearbeiten(ticker) {
+  const s = aktuelleStocks.find(x => x.ticker === ticker);
+  if (!s) return;
+
+  const panel = document.getElementById('adminPanel');
+  panel.classList.add('open');
+  document.getElementById('toggleAdmin').setAttribute('aria-expanded', 'true');
+
+  const setz = (id, wert) => { document.getElementById(id).value = wert ?? ''; };
+  setz('fTicker', s.ticker);
+  setz('fName', s.name);
+  setz('fSector', s.sector);
+  setz('fExchange', s.exchange);
+  setz('fTargetLow', s.target_low ?? s.target);
+  setz('fTargetHigh', s.target_high);
+  setz('fNotes', s.notes);
+
+  const zonen = zonenVon(s);
+  const paare = [['fEntryLow','fEntryHigh'], ['fZone2Low','fZone2High'], ['fZone3Low','fZone3High']];
+  paare.forEach(([lo, hi], i) => {
+    setz(lo, zonen[i] ? zonen[i].low : '');
+    setz(hi, zonen[i] ? zonen[i].high : '');
+  });
+
+  bearbeiteTicker = ticker;
+  document.getElementById('addStock').textContent = `${ticker} aktualisieren`;
+  document.getElementById('abbrechenBearbeiten').hidden = false;
+  setAdminMsg(`${ticker} wird bearbeitet. Deine erfassten Einstiege bleiben erhalten.`, true);
+  panel.scrollIntoView({ block: 'nearest' });
+  document.getElementById('fSector').focus();
+}
+
 async function addStock() {
   const ticker = document.getElementById('fTicker').value.trim().toUpperCase();
   const name = document.getElementById('fName').value.trim();
@@ -1376,7 +1719,7 @@ async function addStock() {
   const stock = {
     ticker,
     name,
-    sector: document.getElementById('fSector').value.trim() || 'Sonstige',
+    sector: sektorVereinheitlichen(document.getElementById('fSector').value, aktuelleStocks),
     exchange: document.getElementById('fExchange').value.trim().toUpperCase(),
     added_date: new Date().toISOString().slice(0, 10),
     notes: document.getElementById('fNotes').value.trim(),
@@ -1391,12 +1734,31 @@ async function addStock() {
     setAdminMsg('Speichere …', true);
     const { json, sha } = await loadWatchlistFile();
     json.stocks = json.stocks || [];
-    json.stocks.push(stock);
-    await saveWatchlistFile(json, sha, `Watchlist: ${ticker} hinzugefügt`);
-    setAdminMsg(`${ticker} gespeichert. Kurse erscheinen nach dem nächsten Update-Lauf.`, true);
-    ['fTicker','fName','fSector','fExchange','fTargetLow','fTargetHigh',
-     'fEntryLow','fEntryHigh','fZone2Low','fZone2High','fZone3Low','fZone3High',
-     'fNotes'].forEach(id => document.getElementById(id).value = '');
+
+    const vorhandenIdx = json.stocks.findIndex(x => x.ticker === (bearbeiteTicker || ticker));
+    let nachricht;
+    if (bearbeiteTicker) {
+      if (vorhandenIdx < 0) throw new Error(`${bearbeiteTicker} steht nicht mehr in der Watchlist.`);
+      const alt = json.stocks[vorhandenIdx];
+      // Einstiege und Verkäufe gehören nicht ins Formular und bleiben unangetastet
+      json.stocks[vorhandenIdx] = {
+        ...stock,
+        added_date: alt.added_date || stock.added_date,
+        ...(alt.positions ? { positions: alt.positions } : {}),
+        ...(alt.sales ? { sales: alt.sales } : {}),
+      };
+      nachricht = `Watchlist: ${bearbeiteTicker} bearbeitet`;
+    } else {
+      if (vorhandenIdx >= 0) { setAdminMsg(`${ticker} steht bereits in der Watchlist – zum Ändern das Stift-Symbol nutzen.`, false); return; }
+      json.stocks.push(stock);
+      nachricht = `Watchlist: ${ticker} hinzugefügt`;
+    }
+
+    await saveWatchlistFile(json, sha, nachricht);
+    setAdminMsg(bearbeiteTicker
+      ? `${ticker} aktualisiert. Zonen greifen ab dem nächsten Kursabruf.`
+      : `${ticker} gespeichert. Kurse erscheinen nach dem nächsten Update-Lauf.`, true);
+    formularLeeren();
     refreshCurrentList();
   } catch (e) {
     setAdminMsg('Fehler: ' + e.message, false);
@@ -1481,6 +1843,10 @@ document.getElementById('saveSettings').addEventListener('click', () => {
 });
 
 document.getElementById('addStock').addEventListener('click', addStock);
+document.getElementById('abbrechenBearbeiten').addEventListener('click', () => {
+  formularLeeren();
+  setAdminMsg('Bearbeiten abgebrochen.', true);
+});
 document.getElementById('triggerRun').addEventListener('click', triggerRun);
 
 (function initSettings() {
