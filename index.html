@@ -317,6 +317,30 @@
     color: var(--accent); border-color: var(--accent); outline: none;
   }
 
+  /* Hinweiszeile und Aufleuchten bei neu erreichter Zone */
+  .treffer-hinweis {
+    margin-top: 18px;
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--success) 45%, transparent);
+    background: var(--success-bg);
+    color: var(--success);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  @keyframes zoneAufleuchten {
+    0%   { background-color: transparent; }
+    22%  { background-color: oklch(0.72 0.15 145 / 0.28); }
+    100% { background-color: transparent; }
+  }
+  .stock-block.neu-erreicht { animation: zoneAufleuchten 2.4s ease-out 2; }
+  @media (prefers-reduced-motion: reduce) {
+    .stock-block.neu-erreicht {
+      animation: none;
+      box-shadow: inset 3px 0 0 var(--success), 0 0 0 1px var(--success);
+    }
+  }
+
   /* ---------- Portfolio ---------- */
   .pf {
     border: 1px solid var(--panel-border);
@@ -459,7 +483,7 @@
 
   .col-header {
     display: grid;
-    grid-template-columns: minmax(210px,2fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(90px,1fr) minmax(80px,0.9fr) minmax(110px,1.2fr) 7.5rem;
+    grid-template-columns: minmax(210px,2fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(190px,2fr) minmax(80px,0.9fr) minmax(110px,1.2fr) 7.5rem;
     gap: 20px;
     padding: 16px 16px 12px;
     border-bottom: 1px solid var(--panel-border);
@@ -510,7 +534,7 @@
   }
   .row {
     display: grid;
-    grid-template-columns: minmax(210px,2fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(90px,1fr) minmax(80px,0.9fr) minmax(110px,1.2fr) 7.5rem;
+    grid-template-columns: minmax(210px,2fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(190px,2fr) minmax(80px,0.9fr) minmax(110px,1.2fr) 7.5rem;
     gap: 20px;
     align-items: center;
     padding: 14px 8px;
@@ -652,7 +676,7 @@
     margin-top: 24px;
   }
   @media (max-width: 720px) {
-    .col-header, .row { grid-template-columns: minmax(110px,1.4fr) minmax(50px,0.6fr) minmax(50px,0.6fr) minmax(70px,0.9fr) minmax(70px,0.8fr) minmax(90px,1fr) 1.5rem; gap: 12px; }
+    .col-header, .row { grid-template-columns: minmax(110px,1.4fr) minmax(50px,0.6fr) minmax(50px,0.6fr) minmax(110px,1.2fr) minmax(70px,0.8fr) minmax(90px,1fr) 1.5rem; gap: 12px; }
     .remove-inline { opacity: 1; }
   }
 </style>
@@ -729,6 +753,8 @@
     Entfernen blendet die Zeile nur aus, es wird nichts gespeichert.
     Für den echten Betrieb die Seite ohne <code>?demo</code> aufrufen.
   </div>
+
+  <div class="treffer-hinweis" id="trefferHinweis" hidden></div>
 
   <div id="highlights"></div>
 
@@ -880,6 +906,7 @@ async function loadStatus() {
     renderHighlights(stocks);
     renderPortfolio(stocks);
     content.innerHTML = sectors.map(renderSector).join('');
+    neueTrefferMarkieren(stocks);
   } catch (e) {
     document.getElementById('highlights').innerHTML = '';
     document.getElementById('portfolio').innerHTML = '';
@@ -1441,6 +1468,45 @@ function sektorVereinheitlichen(eingabe, stocks) {
   return treffer || roh;
 }
 
+/* ---------- Neu erreichte Zonen hervorheben ----------
+   Der Zustand jeder Aktie wird im Browser gemerkt. Ist ein Titel beim
+   nächsten Aufruf in einer Zone, in der er vorher nicht war, leuchtet seine
+   Zeile einmal kurz auf. Beim allerersten Besuch bleibt alles ruhig – sonst
+   würde die ganze Liste blinken. */
+const ZONEN_SPEICHER = 'wl_zonen_stand';
+
+function neueTrefferMarkieren(stocks) {
+  const hinweis = document.getElementById('trefferHinweis');
+  if (hinweis) { hinweis.hidden = true; hinweis.textContent = ''; }
+
+  let vorher = null;
+  try { vorher = JSON.parse(localStorage.getItem(ZONEN_SPEICHER) || 'null'); } catch (_) {}
+
+  const jetzt = {};
+  stocks.forEach(s => { if (!s.error) jetzt[s.ticker] = s.entry_status || 'watching'; });
+
+  if (vorher) {
+    const neu = Object.keys(jetzt).filter(t => jetzt[t] === 'hit' && vorher[t] && vorher[t] !== 'hit');
+    neu.forEach(t => {
+      const block = document.querySelector(`[data-block="${t}"]`);
+      if (block) block.classList.add('neu-erreicht');
+    });
+    if (neu.length) meldeNeueTreffer(neu);
+  }
+
+  try { localStorage.setItem(ZONEN_SPEICHER, JSON.stringify(jetzt)); } catch (_) {}
+}
+
+/* Kurzer Hinweis oben, damit der Treffer auch beim Scrollen nicht untergeht */
+function meldeNeueTreffer(tickers) {
+  const el = document.getElementById('trefferHinweis');
+  if (!el) return;
+  el.textContent = tickers.length === 1
+    ? `${tickers[0]} ist neu in einer Einstiegszone`
+    : `${tickers.join(', ')} sind neu in einer Einstiegszone`;
+  el.hidden = false;
+}
+
 /* Ring, Legende und Positionszeile heben sich gegenseitig hervor */
 function ringHervorheben(ticker) {
   const svg = document.querySelector('.pf-ring');
@@ -1710,7 +1776,7 @@ function fmtPct(n) {
 
 function sparkline(history, color) {
   if (!history || history.length < 2) return '';
-  const w = 110, h = 32, pad = 3;
+  const w = 220, h = 34, pad = 3;
   const min = Math.min(...history), max = Math.max(...history);
   const range = (max - min) || 1;
   const points = history.map((v, i) => {
