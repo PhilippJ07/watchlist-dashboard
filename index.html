@@ -1569,23 +1569,40 @@ function zeilenAktionen(s) {
 
 /* Logo von Finnhub, sonst ein Monogramm aus dem Kürzel. Die Farbe leitet
    sich aus dem Ticker ab, damit dieselbe Aktie immer gleich aussieht. */
+/* Logo in drei Stufen: erst das Firmenlogo von Finnhub, dann das Symbol der
+   Firmen-Webseite, zuletzt ein farbiges Monogramm. Das Monogramm liegt immer
+   darunter, ein geladenes Bild deckt es ab. */
+function logoQuellen(s) {
+  const quellen = [];
+  if (s.logo) quellen.push(s.logo);
+  if (s.domain) quellen.push(`https://icons.duckduckgo.com/ip3/${s.domain}.ico`);
+  return quellen;
+}
+
 function firmenLogo(s) {
   const kuerzel = (s.ticker || '?').slice(0, 2);
   let summe = 0;
   for (const c of (s.ticker || '')) summe = (summe * 31 + c.charCodeAt(0)) % 360;
   const monogramm = `<span class="logo-mono" style="--h:${summe}">${kuerzel}</span>`;
-  if (!s.logo) return `<span class="logo-feld">${monogramm}</span>`;
-  // Monogramm liegt immer darunter; das Bild deckt es ab, sobald es geladen
-  // ist. Lädt es nicht, blendet der Fehler-Beobachter unten es aus.
+
+  const quellen = logoQuellen(s);
+  if (!quellen.length) return `<span class="logo-feld">${monogramm}</span>`;
+
   return `<span class="logo-feld">${monogramm}
-    <img class="logo-bild" src="${s.logo}" alt=""></span>`;
+    <img class="logo-bild" src="${quellen[0]}" alt=""
+         data-weitere="${quellen.slice(1).join(' ')}"></span>`;
 }
 
-/* Fehlerhafte Logo-Bilder ausblenden – "error" steigt nicht auf, deshalb in
-   der Erfassungsphase mithören. */
+/* Scheitert eine Quelle, wird die nächste probiert; ist keine mehr übrig,
+   verschwindet das Bild und das Monogramm bleibt stehen.
+   "error" steigt nicht auf, deshalb in der Erfassungsphase mithören. */
 document.addEventListener('error', (e) => {
   const img = e.target;
-  if (img instanceof HTMLImageElement && img.classList.contains('logo-bild')) img.remove();
+  if (!(img instanceof HTMLImageElement) || !img.classList.contains('logo-bild')) return;
+  const weitere = (img.getAttribute('data-weitere') || '').split(' ').filter(Boolean);
+  if (!weitere.length) { img.remove(); return; }
+  img.setAttribute('data-weitere', weitere.slice(1).join(' '));
+  img.src = weitere[0];
 }, true);
 
 /* Analystenbanner direkt neben dem Ticker – die wichtigste Fremdmeinung
