@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Watchlist Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: oklch(0.16 0.01 250);
@@ -25,11 +24,15 @@
     --badge-bg: oklch(0.3 0.01 250);
     --warn: oklch(0.78 0.13 75);
     --input-bg: oklch(0.14 0.01 250);
-    --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
-    --sans: Helvetica, Arial, sans-serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "Helvetica Neue", Arial, sans-serif;
+    /* Zahlenkontexte: gleiche Familie, aber feste Ziffernbreite,
+       damit Kommas in Spalten untereinander stehen. */
+    --num: var(--sans);
   }
   * { box-sizing: border-box; }
   body {
+    font-variant-numeric: tabular-nums;
     margin: 0;
     background: var(--bg);
     color: var(--text);
@@ -57,7 +60,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-family: var(--mono);
+    font-family: var(--num);
     font-size: 12.5px;
     line-height: 1;
     padding: 9px 14px;
@@ -123,7 +126,7 @@
   .field { display: flex; flex-direction: column; gap: 4px; }
   .field label { font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; }
   .field input {
-    font-family: var(--mono);
+    font-family: var(--num);
     font-size: 13px;
     background: var(--input-bg);
     border: 1px solid var(--panel-border);
@@ -134,7 +137,7 @@
   .field input:focus { outline: none; border-color: var(--accent); }
   .admin-actions { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
   .btn {
-    font-family: var(--mono);
+    font-family: var(--num);
     font-size: 12.5px;
     font-weight: 600;
     border-radius: 6px;
@@ -147,7 +150,7 @@
   .btn:hover { background: oklch(0.75 0.14 250 / 0.1); }
   .btn.secondary { border-color: var(--panel-border); color: var(--text-dim); }
   .btn.danger { border-color: var(--danger); color: var(--danger); font-size: 11px; padding: 3px 8px; }
-  .admin-msg { font-size: 12.5px; font-family: var(--mono); margin-top: 10px; }
+  .admin-msg { font-size: 12.5px; font-family: var(--num); margin-top: 10px; }
   .admin-msg.ok { color: var(--success); }
   .admin-msg.err { color: var(--danger); }
   .current-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
@@ -155,7 +158,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-family: var(--mono);
+    font-family: var(--num);
     font-size: 12.5px;
     padding: 6px 10px;
     border: 1px solid var(--panel-border);
@@ -176,7 +179,7 @@
   }
   .demo-banner strong { color: var(--warn); }
   .demo-banner code {
-    font-family: var(--mono);
+    font-family: var(--num);
     font-size: 0.92em;
     color: var(--text);
   }
@@ -236,7 +239,7 @@
   }
   .hl-main:focus-visible { outline: 2px solid var(--success); outline-offset: 2px; }
   .hl-ticker {
-    font-family: var(--mono);
+    font-family: var(--num);
     font-size: 13px;
     font-weight: 600;
     color: var(--text);
@@ -249,13 +252,13 @@
     white-space: nowrap;
   }
   .hl-price {
-    font-family: var(--mono);
+    font-family: var(--num);
     font-size: 13px;
     color: var(--text);
     font-variant-numeric: tabular-nums;
   }
   .hl-status {
-    font-family: var(--mono);
+    font-family: var(--num);
     font-size: 11px;
     font-weight: 600;
     padding: 2px 8px;
@@ -299,13 +302,13 @@
   .dlg-felder { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .dlg-felder .field:last-child { grid-column: 1 / -1; }
   .dlg-rechnung {
-    margin: 12px 0 0; font-family: var(--mono); font-size: 12px;
+    margin: 12px 0 0; font-family: var(--num); font-size: 12px;
     color: var(--text-dim); min-height: 1.2em;
   }
   .dlg-aktionen { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
   .dlg-schnell { display: flex; gap: 6px; margin-top: 12px; }
   .dlg-schnell button {
-    flex: 1; font-family: var(--mono); font-size: 11.5px;
+    flex: 1; font-family: var(--num); font-size: 11.5px;
     padding: 6px 0; border-radius: 5px; cursor: pointer;
     border: 1px solid var(--panel-border); background: transparent; color: var(--text-dim);
     transition: color 130ms ease, border-color 130ms ease;
@@ -339,11 +342,11 @@
   .pf-kennzahlen { display: flex; gap: 34px; flex-wrap: wrap; }
   .kz { display: flex; flex-direction: column; gap: 6px; }
   .kz-label {
-    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.09em;
+    font-family: var(--num); font-size: 10.5px; letter-spacing: 0.09em;
     text-transform: uppercase; color: var(--text-faint);
   }
   .kz-wert {
-    font-family: var(--mono); font-size: 21px; font-weight: 600; line-height: 1;
+    font-family: var(--num); font-size: 21px; font-weight: 600; line-height: 1;
     color: var(--text); font-variant-numeric: tabular-nums;
   }
   .kz-wert.up { color: var(--success); }
@@ -356,10 +359,10 @@
     display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
   }
   .pf-real .titel { font-size: 13px; font-weight: 600; color: var(--text); }
-  .pf-real .summe { font-family: var(--mono); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .pf-real .summe { font-family: var(--num); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .pf-real .liste { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
   .pf-real .eintrag {
-    font-family: var(--mono); font-size: 11px; padding: 3px 9px;
+    font-family: var(--num); font-size: 11px; padding: 3px 9px;
     border-radius: 4px; background: var(--badge-bg); color: var(--text-dim); white-space: nowrap;
   }
   .gv.up { color: var(--success); }
@@ -375,7 +378,7 @@
   }
   .pf-legende div.aktiv { background: var(--row-hover); color: var(--text); }
   .pf-legende .farbe { width: 9px; height: 9px; border-radius: 2px; flex: none; }
-  .pf-legende .anteil { margin-left: auto; font-family: var(--mono); color: var(--text-faint); font-variant-numeric: tabular-nums; }
+  .pf-legende .anteil { margin-left: auto; font-family: var(--num); color: var(--text-faint); font-variant-numeric: tabular-nums; }
 
   /* Ring: gehovertes Segment wird dicker, die übrigen treten zurück.
      Bewusst über stroke-width statt transform – ein CSS-transform würde die
@@ -393,25 +396,29 @@
   .pf-liste { flex: 1 1 22rem; display: flex; flex-direction: column; }
   .pf-zeile {
     display: grid;
-    grid-template-columns: 4.5rem 1fr repeat(3, minmax(5rem, auto)) 1.5rem;
-    gap: 12px;
-    align-items: center;
-    padding: 7px 4px;
-    border-top: 1px solid var(--row-border);
-    font-size: 12.5px;
+    grid-template-columns: minmax(9rem, 1.6fr) minmax(6rem, 0.9fr) minmax(7rem, 1fr) 5.6rem;
+    gap: 18px; align-items: center;
+    padding: 11px 6px;
+    border-bottom: 1px solid var(--row-border);
+    border-radius: 5px;
+    transition: background-color 140ms ease;
   }
-  .pf-liste .pf-zeile.kopf {
-    border-top: none;
-    font-family: var(--mono);
-    font-size: 10.5px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--text-faint);
+  .pf-zeile:last-child { border-bottom: none; }
+  .pf-zeile.kopf {
+    border-bottom: 1px solid var(--panel-border);
+    font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-faint); padding-bottom: 9px;
   }
-  .pf-zeile .tk { font-family: var(--mono); font-weight: 600; color: var(--text); }
-  .pf-zeile .nm { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pf-zeile .num { font-family: var(--mono); text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+  .pf-zeile.kopf span:nth-child(2),
+  .pf-zeile.kopf span:nth-child(3) { text-align: right; }
+  .pf-pos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .pf-pos .tk { font-family: var(--num); font-size: 13.5px; font-weight: 600; color: var(--text); }
+  .pf-pos .nm { font-size: 12px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pf-zeile .num { font-family: var(--num); font-size: 13.5px; color: var(--text); text-align: right; }
   .pf-zeile .num.dim { color: var(--text-dim); }
+  .pf-entw { display: flex; flex-direction: column; gap: 1px; align-items: flex-end; font-family: var(--num); }
+  .pf-entw .pct { font-size: 14px; font-weight: 600; }
+  .pf-entw .abs { font-size: 11.5px; opacity: 0.7; }
   .pf-leer { padding: 4px 8px 10px; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
 
   .pf-weg {
@@ -452,12 +459,15 @@
 
   .col-header {
     display: grid;
-    grid-template-columns: minmax(130px,1.6fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(90px,1fr) minmax(80px,0.9fr) minmax(110px,1.2fr) minmax(9.5rem, auto);
+    grid-template-columns: minmax(130px,1.6fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(90px,1fr) minmax(80px,0.9fr) minmax(110px,1.2fr) 7.5rem;
     gap: 20px;
     padding: 16px 16px 12px;
     border-bottom: 1px solid var(--panel-border);
     margin-top: 24px;
   }
+  .col-header span:nth-child(2),
+  .col-header span:nth-child(3),
+  .col-header span:nth-child(5) { text-align: right; }
   .col-header span {
     font-size: 11px;
     font-weight: 600;
@@ -472,9 +482,11 @@
     padding: 0 8px 8px;
   }
   .sector-name {
-    font-size: 16px;
+    font-size: 12px;
     font-weight: 600;
-    color: var(--accent);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-faint);
     letter-spacing: 0.01em;
     padding: 16px 8px 10px;
   }
@@ -499,7 +511,7 @@
   }
   .row {
     display: grid;
-    grid-template-columns: minmax(130px,1.6fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(90px,1fr) minmax(80px,0.9fr) minmax(110px,1.2fr) minmax(9.5rem, auto);
+    grid-template-columns: minmax(130px,1.6fr) minmax(60px,0.6fr) minmax(60px,0.6fr) minmax(90px,1fr) minmax(80px,0.9fr) minmax(110px,1.2fr) 7.5rem;
     gap: 20px;
     align-items: center;
     padding: 14px 8px;
@@ -508,6 +520,10 @@
   }
   .stock-block.hit .row { border-left-color: var(--success); background: var(--success-row); }
   .row-actions { display: flex; gap: 5px; align-items: center; justify-content: flex-end; }
+  /* Zustandsanzeige, kein Knopf: grüner Punkt = Position im Portfolio */
+  .im-depot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex: none; margin-right: 3px; }
+  .im-depot.leer { background: transparent; }
+  .remove-inline.gefahr:hover, .remove-inline.gefahr:focus-visible { color: var(--danger); border-color: var(--danger); }
   .remove-inline {
     opacity: 0;
     width: 1.5rem;
@@ -530,21 +546,43 @@
     border-color: var(--danger);
     outline: none;
   }
-  .stock-id { display: flex; flex-direction: column; gap: 2px; }
-  .ticker { font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--text); }
+  .stock-id {
+    display: grid;
+    grid-template-columns: 1.1rem 1fr;
+    grid-template-areas: "pfeil ticker" "pfeil name";
+    align-items: center;
+    column-gap: 6px;
+    row-gap: 2px;
+  }
+  .stock-id .ticker { grid-area: ticker; }
+  .stock-id .name { grid-area: name; }
+  .aufklapp {
+    grid-area: pfeil;
+    width: 1.1rem; height: 1.1rem;
+    display: grid; place-items: center;
+    background: none; border: none; padding: 0;
+    color: var(--text-faint); font-size: 14px; line-height: 1;
+    cursor: pointer; border-radius: 3px;
+    transition: transform 150ms ease, color 130ms ease;
+  }
+  .aufklapp:hover, .aufklapp:focus-visible { color: var(--text); outline: none; }
+  .aufklapp.offen { transform: rotate(90deg); color: var(--text); }
+  .aufklapp.leer { cursor: default; }
+  @media (prefers-reduced-motion: reduce) { .aufklapp { transition: color 130ms ease; } }
+  .ticker { font-family: var(--num); font-size: 14px; font-weight: 600; color: var(--text); }
   .name { font-size: 13px; color: var(--text-dim); }
-  .price { font-family: var(--mono); font-size: 15px; font-weight: 600; color: var(--text); }
-  .change { font-family: var(--mono); font-size: 14px; font-weight: 500; }
+  .price { font-family: var(--num); font-size: 15px; font-weight: 600; color: var(--text); text-align: right; }
+  .change { font-family: var(--num); font-size: 13px; font-weight: 400; text-align: right; }
   .change.up { color: var(--success); }
   .change.down { color: var(--danger); }
   .sparkline { display: block; }
-  .target-block { display: flex; flex-direction: column; gap: 2px; }
-  .target { font-family: var(--mono); font-size: 14px; color: oklch(0.9 0.005 250); }
-  .upside { font-family: var(--mono); font-size: 12px; }
+  .target-block { display: flex; flex-direction: column; gap: 2px; align-items: flex-end; text-align: right; }
+  .target { font-family: var(--num); font-size: 14px; color: oklch(0.9 0.005 250); }
+  .upside { font-family: var(--num); font-size: 12px; font-weight: 400; opacity: 0.85; }
   .upside.up { color: var(--success); }
   .upside.down { color: var(--danger); }
   .entry-block { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
-  .entry-range { font-family: var(--mono); font-size: 13px; color: oklch(0.7 0.01 250); }
+  .entry-range { font-family: var(--num); font-size: 13px; color: oklch(0.7 0.01 250); }
   .zone-line {
     display: flex;
     align-items: center;
@@ -553,14 +591,14 @@
     justify-content: space-between;
   }
   .zone-range {
-    font-family: var(--mono);
+    font-family: var(--num);
     font-size: 12.5px;
     color: var(--text-faint);
     font-variant-numeric: tabular-nums;
   }
   .zone-line.hit .zone-range { color: var(--text); }
   .zone-line.near .zone-range { color: oklch(0.7 0.01 250); }
-  .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; background: var(--badge-bg); color: var(--text-dim); }
+  .badge { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 3px; background: var(--badge-bg); color: var(--text-dim); }
   .badge.hit { background: var(--success-bg); color: var(--success); }
   .extra-row {
     display: flex;
@@ -571,7 +609,7 @@
     font-size: 11.5px;
     color: var(--text-dim);
   }
-  .rating-badge { font-family: var(--mono); font-weight: 600; padding: 2px 8px; border-radius: 3px; background: var(--badge-bg); color: var(--text-dim); }
+  .rating-badge { font-family: var(--num); font-weight: 600; padding: 2px 8px; border-radius: 3px; background: var(--badge-bg); color: var(--text-dim); }
   .rating-badge.buy { background: var(--success-bg); color: var(--success); }
   .rating-badge.hold { background: var(--badge-bg); color: var(--text-dim); }
   .rating-badge.sell { background: var(--danger-bg); color: var(--danger); }
@@ -579,7 +617,7 @@
   .news-link:hover { color: var(--text); }
   .news-date { color: var(--text-faint); }
   .news-sep { color: oklch(0.4 0.01 250); }
-  .error-row { font-family: var(--mono); font-size: 12px; color: var(--danger); padding: 14px 8px; }
+  .error-row { font-family: var(--num); font-size: 12px; color: var(--danger); padding: 14px 8px; }
   .empty {
     color: var(--text-dim);
     text-align: center;
@@ -1294,16 +1332,22 @@ function renderPortfolio(stocks) {
 
   const zeilen = posten.map(p => `
     <div class="pf-zeile" data-ring-zeile="${p.ticker}">
-      <span class="tk">${p.ticker}</span>
-      <span class="nm">${p.name}${p.anzahl > 1 ? ` · ${p.anzahl} Käufe` : ''}</span>
-      <span class="num dim versteckbar">${fmt(p.eingesetzt)}</span>
-      <span class="num dim">${fmt(p.schnitt)} → ${fmt(p.kurs)}</span>
-      <span class="num gv ${p.gv >= 0 ? 'up' : 'down'}">${fmtPct(p.gvPct)}</span>
+      <span class="pf-pos">
+        <span class="tk">${p.ticker}</span>
+        <span class="nm">${p.name}</span>
+      </span>
+      <span class="num">${fmt(p.eingesetzt)}</span>
+      <span class="pf-entw gv ${p.gv >= 0 ? 'up' : 'down'}">
+        <span class="pct">${fmtPct(p.gvPct)}</span>
+        <span class="abs">${p.gv >= 0 ? '+' : ''}${fmt(p.gv)}</span>
+      </span>
       <span class="pf-aktionen">
+        <button type="button" class="pf-weg" data-einstieg="${p.ticker}"
+          title="Nachkauf bei ${p.ticker} erfassen" aria-label="Nachkauf bei ${p.ticker} erfassen">+</button>
         <button type="button" class="pf-weg" data-verkauf="${p.ticker}"
-          title="Teilverkauf für ${p.ticker}" aria-label="Teilverkauf für ${p.ticker}">↧</button>
+          title="Teilverkauf bei ${p.ticker}" aria-label="Teilverkauf bei ${p.ticker}">−</button>
         <button type="button" class="pf-weg gefahr" data-position-weg="${p.ticker}"
-          title="Alle Einstiege für ${p.ticker} entfernen" aria-label="Alle Einstiege für ${p.ticker} entfernen">×</button>
+          title="Position ${p.ticker} löschen" aria-label="Position ${p.ticker} löschen">×</button>
       </span>
     </div>`).join('');
 
@@ -1339,10 +1383,10 @@ function renderPortfolio(stocks) {
       </div>
       <div class="pf-liste">
         <div class="pf-zeile kopf">
-          <span>Position</span><span></span>
-          <span class="num versteckbar">Investiert</span>
-          <span class="num">Ø → heute</span>
-          <span class="num">Entwicklung</span><span></span>
+          <span>Position</span>
+          <span class="num">Investiert</span>
+          <span>Entwicklung</span>
+          <span></span>
         </div>
         ${zeilen}
       </div>
@@ -1439,8 +1483,15 @@ function renderStock(s) {
         </div>`).join('')
     : `<span class="entry-range">–</span>`;
 
+  const detail = renderExtraRow(s);
+  const pfeil = detail
+    ? `<button type="button" class="aufklapp" data-aufklappen="${s.ticker}"
+         aria-expanded="false" aria-label="Details zu ${s.ticker} anzeigen">›</button>`
+    : `<span class="aufklapp leer"></span>`;
+
   const row = `<div class="row">
     <div class="stock-id">
+      ${pfeil}
       <span class="ticker">${s.ticker}</span>
       <span class="name">${s.name || ''}</span>
     </div>
@@ -1452,9 +1503,7 @@ function renderStock(s) {
     <div class="row-actions">${zeilenAktionen(s)}</div>
   </div>`;
 
-  const extra = renderExtraRow(s);
-
-  return `<div class="stock-block ${hit ? 'hit' : ''}">${row}${extra}</div>`;
+  return `<div class="stock-block ${hit ? 'hit' : ''}" data-block="${s.ticker}">${row}${detail}</div>`;
 }
 
 /* Entfernen-Knopf, der beim Überfahren der Zeile erscheint. Nur sinnvoll,
@@ -1463,14 +1512,20 @@ function renderStock(s) {
 /* Aktionen je Aktie: Einstieg erfassen, bearbeiten, entfernen.
    Erscheinen erst beim Überfahren der Zeile, damit die Tabelle ruhig bleibt. */
 function zeilenAktionen(s) {
-  if (!darfSchreiben()) return '';
   const hatPosition = positionenVon(s).length > 0;
-  return `
-    <button class="aktion-btn ${hatPosition ? 'gesetzt' : ''}" data-einstieg="${s.ticker}"
-      title="Einstieg für ${s.ticker} erfassen">${hatPosition ? '✓ im Portfolio' : '+ Einstieg erfassen'}</button>
+  // Zustand und Aktion sauber trennen: der Punkt links ist reine Anzeige
+  // ("liegt im Portfolio"), die Knöpfe rechts sind die Aktionen.
+  const marke = hatPosition
+    ? `<span class="im-depot" title="Im Portfolio"></span>`
+    : `<span class="im-depot leer"></span>`;
+  if (!darfSchreiben()) return marke;
+  return `${marke}
+    <button class="remove-inline" data-einstieg="${s.ticker}"
+      title="${hatPosition ? `Nachkauf bei ${s.ticker} erfassen` : `Einstieg bei ${s.ticker} erfassen`}"
+      aria-label="Einstieg bei ${s.ticker} erfassen">+</button>
     <button class="remove-inline" data-bearbeiten="${s.ticker}"
       title="${s.ticker} bearbeiten" aria-label="${s.ticker} bearbeiten">✎</button>
-    <button class="remove-inline" data-remove-row="${s.ticker}"
+    <button class="remove-inline gefahr" data-remove-row="${s.ticker}"
       title="${s.ticker} aus der Watchlist entfernen"
       aria-label="${s.ticker} aus der Watchlist entfernen">×</button>`;
 }
@@ -1491,8 +1546,23 @@ function renderExtraRow(s) {
     });
   }
   if (!parts.length) return '';
-  return `<div class="extra-row">${parts.join('')}</div>`;
+  // Standardmäßig eingeklappt – die Tabelle bleibt ruhig, Details holt man
+  // sich über den Pfeil links neben dem Ticker.
+  return `<div class="extra-row" hidden>${parts.join('')}</div>`;
 }
+
+/* Auf-/Zuklappen der Detailzeile */
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-aufklappen]');
+  if (!btn) return;
+  const block = btn.closest('.stock-block');
+  const detail = block && block.querySelector('.extra-row');
+  if (!detail) return;
+  const offen = detail.hasAttribute('hidden');
+  detail.toggleAttribute('hidden', !offen);
+  btn.setAttribute('aria-expanded', offen ? 'true' : 'false');
+  btn.classList.toggle('offen', offen);
+});
 
 function ratingLabelDe(label) {
   if (label === 'Buy') return 'Kaufen';
