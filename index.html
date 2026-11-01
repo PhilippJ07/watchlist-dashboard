@@ -386,11 +386,25 @@
   }
   .pf-toggle svg { transition: transform 180ms ease; }
   .pf-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
-  .pf-detail { border-top: 1px solid var(--panel-border); }
-  .pf-detail[hidden] { display: none; }
+  /* Weiches Aufklappen bei unbekannter Inhaltshoehe. Die Hoehe setzt
+     pfKlappen() in Pixeln und gibt sie danach wieder frei, damit spaetere
+     Aenderungen am Inhalt nicht abgeschnitten werden. grid-template-rows
+     waere kuerzer, klappt in Chrome aber nur auf und nicht wieder zu. */
+  .pf-detail-wrap {
+    overflow: hidden; height: 0;
+    transition: height 280ms cubic-bezier(.4, 0, .2, 1);
+  }
+  .pf-detail {
+    min-height: 0;
+    border-top: 1px solid var(--panel-border);
+    /* haelt den Tabulator draussen, bleibt aber waehrend des Zuklappens sichtbar */
+    visibility: hidden; transition: visibility 0s 280ms;
+  }
+  .pf-detail-wrap.offen .pf-detail { visibility: visible; transition: visibility 0s; }
   .pf-detail .pf-head { padding-top: 16px; }
   @media (prefers-reduced-motion: reduce) {
     .pf-toggle svg { transition: none; }
+    .pf-detail-wrap { transition: none; }
   }
   .pf-ringblock { flex: none; display: flex; flex-direction: column; gap: 14px; }
   .pf-titelblock { display: flex; flex-direction: column; gap: 3px; }
@@ -416,6 +430,7 @@
     margin-top: 12px; padding: 13px 8px 4px;
     display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
   }
+  .pf-real.kurz { border-top: none; margin-top: 0; padding: 0 8px 14px; }
   .pf-real .titel { font-size: 13px; font-weight: 600; color: var(--text); }
   .pf-steuer { font-size: 12px; color: var(--text-dim); }
   .pf-real .summe { font-family: var(--num); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -1488,11 +1503,21 @@ function renderPortfolio(stocks) {
     </div>`).join('');
 
   const mitVerkauf = alle.filter(p => p.anzahlVerkaeufe || p.anzahlAbgeschlossen);
+  const z = zeichen(waehrungen[0]);
+
+  // Die Summe gehört in die Übersicht, die Aufschlüsselung je Aktie erst
+  // in die Details – sonst wird der Kopf wieder lang.
+  const realisiertKurz = mitVerkauf.length
+    ? `<div class="pf-real kurz">
+         <span class="titel">Realisierte Gewinne</span>
+         <span class="summe gv ${realisiert >= 0 ? 'up' : 'down'}">${realisiert >= 0 ? '+' : ''}${fmt(realisiert)}&nbsp;${z}</span>
+         ${steuer > 0 ? `<span class="pf-steuer">abzüglich ${fmt(steuer)}&nbsp;${z} Steuern → ${fmt(realisiert - steuer)}&nbsp;${z} netto</span>` : ''}
+       </div>`
+    : '';
+
   const realisiertBlock = mitVerkauf.length
     ? `<div class="pf-real">
-         <span class="titel">Realisierte Gewinne</span>
-         <span class="summe gv ${realisiert >= 0 ? 'up' : 'down'}">${realisiert >= 0 ? '+' : ''}${fmt(realisiert)}&nbsp;${zeichen(waehrungen[0])}</span>
-         ${steuer > 0 ? `<span class="pf-steuer">abzüglich ${fmt(steuer)}&nbsp;${zeichen(waehrungen[0])} Steuern → ${fmt(realisiert - steuer)}&nbsp;${zeichen(waehrungen[0])} netto</span>` : ''}
+         <span class="titel">Je Aktie</span>
          <span class="liste">${mitVerkauf.map(p =>
            `<span class="eintrag">${p.ticker} ${p.realisiert >= 0 ? '+' : ''}${fmt(p.realisiert)}&nbsp;${zeichen(p.waehrung)}${p.offen ? '' : ' · geschlossen'}</span>`
          ).join('')}</span>
@@ -1505,12 +1530,11 @@ function renderPortfolio(stocks) {
     <div class="pf-kompakt">
       ${ringDiagramm(posten, wert)}
       <div class="pf-kompaktzahlen">
+        <div class="kz"><span class="kz-label">Investiert</span><span class="kz-wert">${fmt(eingesetzt)}&nbsp;${z}</span></div>
+        <div class="kz"><span class="kz-label">Aktueller Wert</span><span class="kz-wert">${fmt(wert)}&nbsp;${z}</span></div>
         <div class="kz"><span class="kz-label">Gesamtperformance</span>
-          <span class="kz-wert ${richtung}">${fmtPct(gvPct)}<span class="kz-neben">${gv >= 0 ? '+' : ''}${fmt(gv)}&nbsp;${zeichen(waehrungen[0])}</span></span>
+          <span class="kz-wert ${richtung}">${fmtPct(gvPct)}<span class="kz-neben">${gv >= 0 ? '+' : ''}${fmt(gv)}&nbsp;${z}</span></span>
         </div>
-        ${mitVerkauf.length ? `<div class="kz"><span class="kz-label">Realisiert</span>
-          <span class="kz-wert ${realisiert >= 0 ? 'up' : 'down'}">${realisiert >= 0 ? '+' : ''}${fmt(realisiert)}&nbsp;${zeichen(waehrungen[0])}</span>
-        </div>` : ''}
       </div>
       <button type="button" class="pf-toggle" data-pf-aufklappen aria-expanded="${offen}" aria-controls="pfDetail">
         <span>${posten.length} Position${posten.length === 1 ? '' : 'en'}</span>
@@ -1519,16 +1543,14 @@ function renderPortfolio(stocks) {
         </svg>
       </button>
     </div>
-    <div class="pf-detail" id="pfDetail"${offen ? '' : ' hidden'}>
+    ${realisiertKurz}
+    <div class="pf-detail-wrap${offen ? ' offen' : ''}"${offen ? ' style="height: auto"' : ''}>
+    <div class="pf-detail" id="pfDetail">
       <div class="pf-head">
         <div class="pf-titelblock">
           <span class="pf-title">Getätigte Einstiege</span>
           <span class="pf-untertitel">Entwicklung seit Einstieg${
             waehrungen.length > 1 ? ` · <span class="pf-warnung">Achtung: ${waehrungen.join(' und ')} gemischt, Summe nicht aussagekräftig</span>` : ''}</span>
-        </div>
-        <div class="pf-kennzahlen">
-          <div class="kz"><span class="kz-label">Investiert</span><span class="kz-wert">${fmt(eingesetzt)}&nbsp;${zeichen(waehrungen[0])}</span></div>
-          <div class="kz"><span class="kz-label">Aktueller Wert</span><span class="kz-wert">${fmt(wert)}&nbsp;${zeichen(waehrungen[0])}</span></div>
         </div>
       </div>
       <div class="pf-body">
@@ -1547,6 +1569,7 @@ function renderPortfolio(stocks) {
       </div>
       ${realisiertBlock}
     </div>
+    </div>
   </div>`;
 }
 
@@ -1558,13 +1581,38 @@ function portfolioOffen() {
   try { return localStorage.getItem(PF_SPEICHER) === '1'; } catch (_) { return false; }
 }
 
+/* Klappt den Detailbereich auf oder zu. Beim Oeffnen laeuft die Hoehe auf
+   den gemessenen Wert und wird danach auf "auto" freigegeben; beim
+   Schliessen erst auf den aktuellen Pixelwert festgenagelt, sonst gibt es
+   von "auto" aus nichts zu animieren. */
+function pfKlappen(wrap, oeffnen) {
+  const sofort = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  wrap.classList.toggle('offen', oeffnen);
+
+  if (oeffnen) {
+    if (sofort) { wrap.style.height = 'auto'; return; }
+    wrap.style.height = wrap.scrollHeight + 'px';
+    wrap.addEventListener('transitionend', function fertig(ev) {
+      if (ev.propertyName !== 'height' || ev.target !== wrap) return;
+      wrap.style.height = 'auto';
+      wrap.removeEventListener('transitionend', fertig);
+    });
+    return;
+  }
+
+  if (sofort) { wrap.style.height = '0px'; return; }
+  wrap.style.height = wrap.scrollHeight + 'px';
+  void wrap.offsetHeight;                      // Reflow erzwingen
+  requestAnimationFrame(() => { wrap.style.height = '0px'; });
+}
+
 document.addEventListener('click', e => {
   const btn = e.target.closest('[data-pf-aufklappen]');
   if (!btn) return;
-  const detail = document.getElementById('pfDetail');
-  if (!detail) return;
-  const neu = detail.hidden;
-  detail.hidden = !neu;
+  const wrap = document.querySelector('.pf-detail-wrap');
+  if (!wrap) return;
+  const neu = !wrap.classList.contains('offen');
+  pfKlappen(wrap, neu);
   btn.setAttribute('aria-expanded', String(neu));
   try { localStorage.setItem(PF_SPEICHER, neu ? '1' : '0'); } catch (_) {}
 });
