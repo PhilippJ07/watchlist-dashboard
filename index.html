@@ -802,7 +802,9 @@
       <div class="dlg-felder">
         <div class="field">
           <label for="vkStueck">Verkaufte Stückzahl</label>
-          <input type="number" step="0.0001" min="0" id="vkStueck" required>
+          <!-- step="any": Bruchstücke haben sechs Nachkommastellen. Mit
+               step="0.0001" wies der Browser genau den Komplettverkauf ab. -->
+          <input type="number" step="any" min="0" id="vkStueck" required>
         </div>
         <div class="field">
           <label for="vkKurs">Verkaufskurs</label>
@@ -1167,7 +1169,9 @@ function oeffneVerkaufDialog(ticker) {
     `Bestand ${p.stueck.toLocaleString('de-DE', { maximumFractionDigits: 4 })} Stück · `
     + `Ø-Einstieg ${fmt(p.schnitt)} · aktueller Kurs ${fmt(p.kurs)}`;
   document.getElementById('vkStueck').value = '';
-  document.getElementById('vkStueck').max = p.stueck;
+  // Kein max-Attribut: eine auf wenige Stellen gerundete Obergrenze hat den
+  // Komplettverkauf blockiert. Geprüft wird in JS, mit Toleranz.
+  document.getElementById('vkStueck').removeAttribute('max');
   document.getElementById('vkKurs').value = p.kurs;
   document.getElementById('vkDatum').value = new Date().toISOString().slice(0, 10);
   document.getElementById('vkMsg').textContent = '';
@@ -1183,7 +1187,10 @@ document.getElementById('vkSchnell').addEventListener('click', (e) => {
   const b = e.target.closest('[data-anteil]');
   if (!b) return;
   const anteil = parseFloat(b.getAttribute('data-anteil'));
-  document.getElementById('vkStueck').value = +(vkBestand * anteil).toFixed(4);
+  // "Alles" übernimmt den Bestand ungerundet. Gerundet blieb sonst ein
+  // Bruchteil einer Aktie stehen und die Position verschwand nie.
+  document.getElementById('vkStueck').value =
+    anteil === 1 ? vkBestand : +(vkBestand * anteil).toFixed(6);
   vkRechnungAktualisieren();
 });
 
@@ -1191,7 +1198,7 @@ document.getElementById('vkAbbrechen').addEventListener('click', () => vkDlg.clo
 
 document.getElementById('verkaufForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const stueck = parseFloat(document.getElementById('vkStueck').value);
+  let stueck = parseFloat(document.getElementById('vkStueck').value);
   const kurs = parseFloat(document.getElementById('vkKurs').value);
   const datum = document.getElementById('vkDatum').value || new Date().toISOString().slice(0, 10);
   const msg = document.getElementById('vkMsg');
@@ -1206,6 +1213,11 @@ document.getElementById('verkaufForm').addEventListener('submit', async (e) => {
     msg.textContent = `Du hältst nur ${vkBestand.toLocaleString('de-DE', { maximumFractionDigits: 4 })} Stück.`;
     return;
   }
+
+  // Wer praktisch alles verkauft, meint alles. Bleibt rechnerisch weniger als
+  // ein Cent übrig, wird auf den vollen Bestand aufgerundet – sonst hinge eine
+  // unsichtbare Restposition im Depot.
+  if (stueck > vkBestand - (vkSchnitt > 0 ? 0.01 / vkSchnitt : 1e-9)) stueck = vkBestand;
 
   // Durchschnitt zum Verkaufszeitpunkt festhalten – spätere Nachkäufe sollen
   // den bereits realisierten Gewinn nicht rückwirkend verändern.
@@ -1317,7 +1329,9 @@ function verkaeufeVon(s) { return Array.isArray(s.sales) ? s.sales : []; }
 /* Abgeschlossene Verkäufe aus dem Depot. Anders als `sales` verringern sie
    die Stückzahl NICHT – die erfassten Einstiege sind bereits der Bestand
    nach diesen Verkäufen. Der Gewinn steht hier fest (vom Broker nach FIFO
-   berechnet), statt ihn aus dem Durchschnittskurs abzuleiten. */
+   berechnet), statt ihn aus dem Durchschnittskurs abzuleiten.
+   Trägt ein Eintrag "reduces": true, war der erfasste Einstieg noch der
+   Bestand VOR dem Verkauf – dann zählt die Stückzahl doch herunter. */
 function abgeschlosseneVon(s) { return Array.isArray(s.realized) ? s.realized : []; }
 
 /* Durchschnittskostenmethode: Ein Teilverkauf senkt die Stückzahl, lässt den
@@ -1351,8 +1365,9 @@ function rechnePosition(s) {
   const summeGekauft = kaeufe.reduce((a, p) => a + p.amount, 0);
   const schnitt = summeGekauft / stueckGekauft;
 
-  const stueckVerkauft = verkaeufe.reduce((a, v) => a + v.shares, 0);
   const abgeschlossen = abgeschlosseneVon(s);
+  const stueckVerkauft = verkaeufe.reduce((a, v) => a + v.shares, 0)
+    + abgeschlossen.reduce((a, v) => a + (v.reduces ? v.shares || 0 : 0), 0);
   const realisiert =
     verkaeufe.reduce((a, v) => a + v.shares * (v.price - (v.cost_per_share ?? schnitt)), 0)
     + abgeschlossen.reduce((a, v) => a + (v.gain || 0), 0);
@@ -1368,7 +1383,9 @@ function rechnePosition(s) {
     stueck, schnitt, kurs, eingesetzt, wert,
     gv: wert - eingesetzt,
     gvPct: eingesetzt > 0 ? (wert - eingesetzt) / eingesetzt * 100 : 0,
-    realisiert, steuer, offen: stueck > 1e-9, waehrung,
+    // Ein Restwert unter einem Cent ist Rundungsrest, keine Position. Sonst
+    // bliebe nach einem Komplettverkauf ein Bruchteil einer Aktie im Depot.
+    realisiert, steuer, offen: eingesetzt >= 0.01, waehrung,
     anzahlAbgeschlossen: abgeschlossen.length,
   };
 }
