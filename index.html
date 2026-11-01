@@ -366,6 +366,32 @@
     border-bottom: 1px solid var(--panel-border);
     margin-bottom: 16px;
   }
+
+  /* Zusammengeklappt: nur Ring, Gesamtperformance und realisierter Gewinn.
+     Die Watchlist soll den Platz bekommen, nicht die Liste der Einstiege. */
+  .pf-kompakt {
+    display: flex; align-items: center; gap: 30px;
+    flex-wrap: wrap; padding: 16px 8px;
+  }
+  .pf-kompaktzahlen { display: flex; gap: 34px; flex-wrap: wrap; flex: 1 1 14rem; }
+  .pf-toggle {
+    flex: none; display: inline-flex; align-items: center; gap: 8px;
+    font: inherit; font-size: 12.5px; color: var(--text-dim);
+    background: none; border: 1px solid var(--panel-border);
+    border-radius: 6px; padding: 7px 12px; cursor: pointer;
+    transition: color 140ms ease, border-color 140ms ease;
+  }
+  .pf-toggle:hover, .pf-toggle:focus-visible {
+    color: var(--text); border-color: var(--text-faint); outline: none;
+  }
+  .pf-toggle svg { transition: transform 180ms ease; }
+  .pf-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+  .pf-detail { border-top: 1px solid var(--panel-border); }
+  .pf-detail[hidden] { display: none; }
+  .pf-detail .pf-head { padding-top: 16px; }
+  @media (prefers-reduced-motion: reduce) {
+    .pf-toggle svg { transition: none; }
+  }
   .pf-ringblock { flex: none; display: flex; flex-direction: column; gap: 14px; }
   .pf-titelblock { display: flex; flex-direction: column; gap: 3px; }
   .pf-title { font-size: 19px; font-weight: 640; color: var(--text); letter-spacing: -0.01em; }
@@ -1456,39 +1482,75 @@ function renderPortfolio(stocks) {
        </div>`
     : '';
 
+  const offen = portfolioOffen();
+
   el.innerHTML = `<div class="pf">
-    <div class="pf-head">
-      <div class="pf-titelblock">
-        <span class="pf-title">Getätigte Einstiege</span>
-        <span class="pf-untertitel">${posten.length} Position${posten.length === 1 ? '' : 'en'} · Entwicklung seit Einstieg${
-          waehrungen.length > 1 ? ` · <span class="pf-warnung">Achtung: ${waehrungen.join(' und ')} gemischt, Summe nicht aussagekräftig</span>` : ''}</span>
-      </div>
-      <div class="pf-kennzahlen">
-        <div class="kz"><span class="kz-label">Investiert</span><span class="kz-wert">${fmt(eingesetzt)}&nbsp;${zeichen(waehrungen[0])}</span></div>
-        <div class="kz"><span class="kz-label">Aktueller Wert</span><span class="kz-wert">${fmt(wert)}&nbsp;${zeichen(waehrungen[0])}</span></div>
+    <div class="pf-kompakt">
+      ${ringDiagramm(posten, wert)}
+      <div class="pf-kompaktzahlen">
         <div class="kz"><span class="kz-label">Gesamtperformance</span>
           <span class="kz-wert ${richtung}">${fmtPct(gvPct)}<span class="kz-neben">${gv >= 0 ? '+' : ''}${fmt(gv)}&nbsp;${zeichen(waehrungen[0])}</span></span>
         </div>
+        ${mitVerkauf.length ? `<div class="kz"><span class="kz-label">Realisiert</span>
+          <span class="kz-wert ${realisiert >= 0 ? 'up' : 'down'}">${realisiert >= 0 ? '+' : ''}${fmt(realisiert)}&nbsp;${zeichen(waehrungen[0])}</span>
+        </div>` : ''}
       </div>
+      <button type="button" class="pf-toggle" data-pf-aufklappen aria-expanded="${offen}" aria-controls="pfDetail">
+        <span>${posten.length} Position${posten.length === 1 ? '' : 'en'}</span>
+        <svg width="11" height="7" viewBox="0 0 11 7" fill="none" aria-hidden="true">
+          <path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </div>
-    <div class="pf-body">
-      <div class="pf-ringblock">
-        ${ringDiagramm(posten, wert)}
-        <div class="pf-legende">${legende}</div>
-      </div>
-      <div class="pf-liste">
-        <div class="pf-zeile kopf">
-          <span>Position</span>
-          <span class="num">Investiert</span>
-          <span>Entwicklung</span>
-          <span></span>
+    <div class="pf-detail" id="pfDetail"${offen ? '' : ' hidden'}>
+      <div class="pf-head">
+        <div class="pf-titelblock">
+          <span class="pf-title">Getätigte Einstiege</span>
+          <span class="pf-untertitel">Entwicklung seit Einstieg${
+            waehrungen.length > 1 ? ` · <span class="pf-warnung">Achtung: ${waehrungen.join(' und ')} gemischt, Summe nicht aussagekräftig</span>` : ''}</span>
         </div>
-        ${zeilen}
+        <div class="pf-kennzahlen">
+          <div class="kz"><span class="kz-label">Investiert</span><span class="kz-wert">${fmt(eingesetzt)}&nbsp;${zeichen(waehrungen[0])}</span></div>
+          <div class="kz"><span class="kz-label">Aktueller Wert</span><span class="kz-wert">${fmt(wert)}&nbsp;${zeichen(waehrungen[0])}</span></div>
+        </div>
       </div>
+      <div class="pf-body">
+        <div class="pf-ringblock">
+          <div class="pf-legende">${legende}</div>
+        </div>
+        <div class="pf-liste">
+          <div class="pf-zeile kopf">
+            <span>Position</span>
+            <span class="num">Investiert</span>
+            <span>Entwicklung</span>
+            <span></span>
+          </div>
+          ${zeilen}
+        </div>
+      </div>
+      ${realisiertBlock}
     </div>
-    ${realisiertBlock}
   </div>`;
 }
+
+/* Auf- oder zugeklappt bleibt über Neuladen hinweg erhalten. Standard: zu,
+   damit die Watchlist oben steht und nicht die Liste der Einstiege. */
+const PF_SPEICHER = 'wl_pf_offen';
+
+function portfolioOffen() {
+  try { return localStorage.getItem(PF_SPEICHER) === '1'; } catch (_) { return false; }
+}
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-pf-aufklappen]');
+  if (!btn) return;
+  const detail = document.getElementById('pfDetail');
+  if (!detail) return;
+  const neu = detail.hidden;
+  detail.hidden = !neu;
+  btn.setAttribute('aria-expanded', String(neu));
+  try { localStorage.setItem(PF_SPEICHER, neu ? '1' : '0'); } catch (_) {}
+});
 
 /* Füllt die Sektor-Vorschlagsliste aus den bereits vergebenen Sektoren.
    Verhindert Dopplungen wie "Healthcare" neben "Health Care" – tippen
@@ -1604,8 +1666,9 @@ function renderStock(s) {
     : (s.target != null ? fmt(s.target) : null);
 
   const targetHtml = zielText
-    ? `<span class="target">${zielText}</span>
-       <span class="upside ${s.upside_pct >= 0 ? 'up' : 'down'}">${fmtPct(s.upside_pct)} Potenzial</span>`
+    ? `<span class="target">${zielText}</span>${Number.isFinite(s.upside_pct)
+        ? `<span class="upside ${s.upside_pct >= 0 ? 'up' : 'down'}">${fmtPct(s.upside_pct)} Potenzial</span>`
+        : ''}`
     : `<span class="target">–</span>`;
 
   // Nur die gerade maßgebliche Zone steht in der Tabelle. Alle weiteren
