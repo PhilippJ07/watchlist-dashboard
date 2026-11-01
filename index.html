@@ -391,6 +391,7 @@
     display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
   }
   .pf-real .titel { font-size: 13px; font-weight: 600; color: var(--text); }
+  .pf-steuer { font-size: 12px; color: var(--text-dim); }
   .pf-real .summe { font-family: var(--num); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .pf-real .liste { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
   .pf-real .eintrag {
@@ -1287,6 +1288,12 @@ function positionenVon(s) {
    Stückzahl = Betrag / Einstiegskurs. Gebühren bleiben außen vor. */
 function verkaeufeVon(s) { return Array.isArray(s.sales) ? s.sales : []; }
 
+/* Abgeschlossene Verkäufe aus dem Depot. Anders als `sales` verringern sie
+   die Stückzahl NICHT – die erfassten Einstiege sind bereits der Bestand
+   nach diesen Verkäufen. Der Gewinn steht hier fest (vom Broker nach FIFO
+   berechnet), statt ihn aus dem Durchschnittskurs abzuleiten. */
+function abgeschlosseneVon(s) { return Array.isArray(s.realized) ? s.realized : []; }
+
 /* Durchschnittskostenmethode: Ein Teilverkauf senkt die Stückzahl, lässt den
    Durchschnittskurs aber unberührt. Der realisierte Gewinn wird beim Verkauf
    mit dem damaligen Durchschnitt festgehalten (cost_per_share), damit spätere
@@ -1319,8 +1326,11 @@ function rechnePosition(s) {
   const schnitt = summeGekauft / stueckGekauft;
 
   const stueckVerkauft = verkaeufe.reduce((a, v) => a + v.shares, 0);
-  const realisiert = verkaeufe.reduce(
-    (a, v) => a + v.shares * (v.price - (v.cost_per_share ?? schnitt)), 0);
+  const abgeschlossen = abgeschlosseneVon(s);
+  const realisiert =
+    verkaeufe.reduce((a, v) => a + v.shares * (v.price - (v.cost_per_share ?? schnitt)), 0)
+    + abgeschlossen.reduce((a, v) => a + (v.gain || 0), 0);
+  const steuer = abgeschlossen.reduce((a, v) => a + (v.tax || 0), 0);
 
   const stueck = Math.max(stueckGekauft - stueckVerkauft, 0);
   const eingesetzt = stueck * schnitt;
@@ -1332,18 +1342,20 @@ function rechnePosition(s) {
     stueck, schnitt, kurs, eingesetzt, wert,
     gv: wert - eingesetzt,
     gvPct: eingesetzt > 0 ? (wert - eingesetzt) / eingesetzt * 100 : 0,
-    realisiert, offen: stueck > 1e-9, waehrung,
+    realisiert, steuer, offen: stueck > 1e-9, waehrung,
+    anzahlAbgeschlossen: abgeschlossen.length,
   };
 }
 
 function berechnePortfolio(stocks) {
   const alle = [];
-  let eingesetzt = 0, wert = 0, realisiert = 0;
+  let eingesetzt = 0, wert = 0, realisiert = 0, steuer = 0;
 
   stocks.forEach(s => {
     const p = rechnePosition(s);
     if (!p) return;
     realisiert += p.realisiert;
+    steuer += p.steuer || 0;
     alle.push(p);
     if (!p.offen) return;              // komplett verkauft: zählt nur realisiert
     eingesetzt += p.eingesetzt;
@@ -1357,7 +1369,7 @@ function berechnePortfolio(stocks) {
   // ob gemischt wurde, und im Kopf darauf hinweisen.
   const waehrungen = [...new Set(posten.map(p => p.waehrung))];
 
-  return { posten, alle, eingesetzt, wert, realisiert, waehrungen,
+  return { posten, alle, eingesetzt, wert, realisiert, steuer, waehrungen,
            gv: wert - eingesetzt,
            gvPct: eingesetzt > 0 ? (wert - eingesetzt) / eingesetzt * 100 : 0 };
 }
@@ -1390,7 +1402,7 @@ function ringDiagramm(posten, gesamt) {
 
 function renderPortfolio(stocks) {
   const el = document.getElementById('portfolio');
-  const { posten, alle, eingesetzt, wert, realisiert, waehrungen, gv, gvPct } = berechnePortfolio(stocks);
+  const { posten, alle, eingesetzt, wert, realisiert, steuer, waehrungen, gv, gvPct } = berechnePortfolio(stocks);
 
   if (!alle.length) {
     el.innerHTML = darfSchreiben()
@@ -1432,13 +1444,14 @@ function renderPortfolio(stocks) {
       </span>
     </div>`).join('');
 
-  const mitVerkauf = alle.filter(p => p.anzahlVerkaeufe);
+  const mitVerkauf = alle.filter(p => p.anzahlVerkaeufe || p.anzahlAbgeschlossen);
   const realisiertBlock = mitVerkauf.length
     ? `<div class="pf-real">
          <span class="titel">Realisierte Gewinne</span>
          <span class="summe gv ${realisiert >= 0 ? 'up' : 'down'}">${realisiert >= 0 ? '+' : ''}${fmt(realisiert)}&nbsp;${zeichen(waehrungen[0])}</span>
+         ${steuer > 0 ? `<span class="pf-steuer">abzüglich ${fmt(steuer)}&nbsp;${zeichen(waehrungen[0])} Steuern → ${fmt(realisiert - steuer)}&nbsp;${zeichen(waehrungen[0])} netto</span>` : ''}
          <span class="liste">${mitVerkauf.map(p =>
-           `<span class="eintrag">${p.ticker} ${p.realisiert >= 0 ? '+' : ''}${fmt(p.realisiert)}${p.offen ? '' : ' · geschlossen'}</span>`
+           `<span class="eintrag">${p.ticker} ${p.realisiert >= 0 ? '+' : ''}${fmt(p.realisiert)}&nbsp;${zeichen(p.waehrung)}${p.offen ? '' : ' · geschlossen'}</span>`
          ).join('')}</span>
        </div>`
     : '';
