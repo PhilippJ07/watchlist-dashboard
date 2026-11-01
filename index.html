@@ -1290,10 +1290,24 @@ function verkaeufeVon(s) { return Array.isArray(s.sales) ? s.sales : []; }
    Durchschnittskurs aber unberührt. Der realisierte Gewinn wird beim Verkauf
    mit dem damaligen Durchschnitt festgehalten (cost_per_share), damit spätere
    Nachkäufe ihn nicht rückwirkend verändern. */
+/* Der Kurs, in dem eine Position bewertet wird.
+   Einstiege aus einem deutschen Depot sind in Euro erfasst, die Kurse kommen
+   aber in Dollar. Ohne Umrechnung wäre die Rendite um die Währungsbewegung
+   verfälscht – deshalb hier der Kurs in der Währung der Einstiege. */
+function kursInPositionswaehrung(s, waehrung) {
+  if (waehrung === 'EUR') return s.price_eur ?? null;
+  return s.price ?? null;
+}
+
 function rechnePosition(s) {
   const kaeufe = positionenVon(s).filter(p => p.amount > 0 && p.price > 0);
-  if (!kaeufe.length || s.price == null) return null;
+  if (!kaeufe.length) return null;
   const verkaeufe = verkaeufeVon(s).filter(v => v.shares > 0 && v.price > 0);
+
+  // Währung der Einstiege; ohne Angabe gilt die Kurswährung der Aktie
+  const waehrung = kaeufe[0].currency || s.currency || 'USD';
+  const kurs = kursInPositionswaehrung(s, waehrung);
+  if (kurs == null) return null;
 
   const stueckGekauft = kaeufe.reduce((a, p) => a + p.amount / p.price, 0);
   const summeGekauft = kaeufe.reduce((a, p) => a + p.amount, 0);
@@ -1305,15 +1319,15 @@ function rechnePosition(s) {
 
   const stueck = Math.max(stueckGekauft - stueckVerkauft, 0);
   const eingesetzt = stueck * schnitt;
-  const wert = stueck * s.price;
+  const wert = stueck * kurs;
 
   return {
     ticker: s.ticker, name: s.name || '', anzahl: kaeufe.length,
     anzahlVerkaeufe: verkaeufe.length,
-    stueck, schnitt, kurs: s.price, eingesetzt, wert,
+    stueck, schnitt, kurs, eingesetzt, wert,
     gv: wert - eingesetzt,
     gvPct: eingesetzt > 0 ? (wert - eingesetzt) / eingesetzt * 100 : 0,
-    realisiert, offen: stueck > 1e-9, waehrung: s.currency || '',
+    realisiert, offen: stueck > 1e-9, waehrung,
   };
 }
 
@@ -1394,10 +1408,10 @@ function renderPortfolio(stocks) {
         <span class="tk">${p.ticker}</span>
         <span class="nm">${p.name}</span>
       </span>
-      <span class="num">${fmt(p.eingesetzt)}</span>
+      <span class="num">${fmt(p.eingesetzt)}&nbsp;€</span>
       <span class="pf-entw gv ${p.gv >= 0 ? 'up' : 'down'}">
         <span class="pct">${fmtPct(p.gvPct)}</span>
-        <span class="abs">${p.gv >= 0 ? '+' : ''}${fmt(p.gv)}</span>
+        <span class="abs">${p.gv >= 0 ? '+' : ''}${fmt(p.gv)}&nbsp;€</span>
       </span>
       <span class="pf-aktionen">
         <button type="button" class="pf-weg" data-einstieg="${p.ticker}"
@@ -1413,7 +1427,7 @@ function renderPortfolio(stocks) {
   const realisiertBlock = mitVerkauf.length
     ? `<div class="pf-real">
          <span class="titel">Realisierte Gewinne</span>
-         <span class="summe gv ${realisiert >= 0 ? 'up' : 'down'}">${realisiert >= 0 ? '+' : ''}${fmt(realisiert)}</span>
+         <span class="summe gv ${realisiert >= 0 ? 'up' : 'down'}">${realisiert >= 0 ? '+' : ''}${fmt(realisiert)}&nbsp;€</span>
          <span class="liste">${mitVerkauf.map(p =>
            `<span class="eintrag">${p.ticker} ${p.realisiert >= 0 ? '+' : ''}${fmt(p.realisiert)}${p.offen ? '' : ' · geschlossen'}</span>`
          ).join('')}</span>
@@ -1427,10 +1441,10 @@ function renderPortfolio(stocks) {
         <span class="pf-untertitel">${posten.length} Position${posten.length === 1 ? '' : 'en'} · Entwicklung seit Einstieg</span>
       </div>
       <div class="pf-kennzahlen">
-        <div class="kz"><span class="kz-label">Investiert</span><span class="kz-wert">${fmt(eingesetzt)}</span></div>
-        <div class="kz"><span class="kz-label">Aktueller Wert</span><span class="kz-wert">${fmt(wert)}</span></div>
+        <div class="kz"><span class="kz-label">Investiert</span><span class="kz-wert">${fmt(eingesetzt)}&nbsp;€</span></div>
+        <div class="kz"><span class="kz-label">Aktueller Wert</span><span class="kz-wert">${fmt(wert)}&nbsp;€</span></div>
         <div class="kz"><span class="kz-label">Gesamtperformance</span>
-          <span class="kz-wert ${richtung}">${fmtPct(gvPct)}<span class="kz-neben">${gv >= 0 ? '+' : ''}${fmt(gv)}</span></span>
+          <span class="kz-wert ${richtung}">${fmtPct(gvPct)}<span class="kz-neben">${gv >= 0 ? '+' : ''}${fmt(gv)}&nbsp;€</span></span>
         </div>
       </div>
     </div>
