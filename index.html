@@ -370,6 +370,7 @@
   .pf-titelblock { display: flex; flex-direction: column; gap: 3px; }
   .pf-title { font-size: 19px; font-weight: 640; color: var(--text); letter-spacing: -0.01em; }
   .pf-untertitel { font-size: 12.5px; color: var(--text-dim); }
+  .pf-warnung { color: var(--warn); font-weight: 600; }
   .pf-kennzahlen { display: flex; gap: 34px; flex-wrap: wrap; }
   .kz { display: flex; flex-direction: column; gap: 6px; }
   .kz-label {
@@ -1299,6 +1300,10 @@ function kursInPositionswaehrung(s, waehrung) {
   return s.price ?? null;
 }
 
+function zeichen(waehrung) {
+  return waehrung === 'EUR' ? '€' : waehrung === 'USD' ? '$' : (waehrung || '');
+}
+
 function rechnePosition(s) {
   const kaeufe = positionenVon(s).filter(p => p.amount > 0 && p.price > 0);
   if (!kaeufe.length) return null;
@@ -1348,7 +1353,11 @@ function berechnePortfolio(stocks) {
   const posten = alle.filter(p => p.offen).sort((a, b) => b.wert - a.wert);
   posten.forEach((p, i) => { p.farbe = RING_FARBEN[i % RING_FARBEN.length]; });
 
-  return { posten, alle, eingesetzt, wert, realisiert,
+  // Summen über verschiedene Währungen wären sinnlos – deshalb merken,
+  // ob gemischt wurde, und im Kopf darauf hinweisen.
+  const waehrungen = [...new Set(posten.map(p => p.waehrung))];
+
+  return { posten, alle, eingesetzt, wert, realisiert, waehrungen,
            gv: wert - eingesetzt,
            gvPct: eingesetzt > 0 ? (wert - eingesetzt) / eingesetzt * 100 : 0 };
 }
@@ -1381,7 +1390,7 @@ function ringDiagramm(posten, gesamt) {
 
 function renderPortfolio(stocks) {
   const el = document.getElementById('portfolio');
-  const { posten, alle, eingesetzt, wert, realisiert, gv, gvPct } = berechnePortfolio(stocks);
+  const { posten, alle, eingesetzt, wert, realisiert, waehrungen, gv, gvPct } = berechnePortfolio(stocks);
 
   if (!alle.length) {
     el.innerHTML = darfSchreiben()
@@ -1408,10 +1417,10 @@ function renderPortfolio(stocks) {
         <span class="tk">${p.ticker}</span>
         <span class="nm">${p.name}</span>
       </span>
-      <span class="num">${fmt(p.eingesetzt)}&nbsp;€</span>
+      <span class="num">${fmt(p.eingesetzt)}&nbsp;${zeichen(p.waehrung)}</span>
       <span class="pf-entw gv ${p.gv >= 0 ? 'up' : 'down'}">
         <span class="pct">${fmtPct(p.gvPct)}</span>
-        <span class="abs">${p.gv >= 0 ? '+' : ''}${fmt(p.gv)}&nbsp;€</span>
+        <span class="abs">${p.gv >= 0 ? '+' : ''}${fmt(p.gv)}&nbsp;${zeichen(p.waehrung)}</span>
       </span>
       <span class="pf-aktionen">
         <button type="button" class="pf-weg" data-einstieg="${p.ticker}"
@@ -1427,7 +1436,7 @@ function renderPortfolio(stocks) {
   const realisiertBlock = mitVerkauf.length
     ? `<div class="pf-real">
          <span class="titel">Realisierte Gewinne</span>
-         <span class="summe gv ${realisiert >= 0 ? 'up' : 'down'}">${realisiert >= 0 ? '+' : ''}${fmt(realisiert)}&nbsp;€</span>
+         <span class="summe gv ${realisiert >= 0 ? 'up' : 'down'}">${realisiert >= 0 ? '+' : ''}${fmt(realisiert)}&nbsp;${zeichen(waehrungen[0])}</span>
          <span class="liste">${mitVerkauf.map(p =>
            `<span class="eintrag">${p.ticker} ${p.realisiert >= 0 ? '+' : ''}${fmt(p.realisiert)}${p.offen ? '' : ' · geschlossen'}</span>`
          ).join('')}</span>
@@ -1438,13 +1447,14 @@ function renderPortfolio(stocks) {
     <div class="pf-head">
       <div class="pf-titelblock">
         <span class="pf-title">Getätigte Einstiege</span>
-        <span class="pf-untertitel">${posten.length} Position${posten.length === 1 ? '' : 'en'} · Entwicklung seit Einstieg</span>
+        <span class="pf-untertitel">${posten.length} Position${posten.length === 1 ? '' : 'en'} · Entwicklung seit Einstieg${
+          waehrungen.length > 1 ? ` · <span class="pf-warnung">Achtung: ${waehrungen.join(' und ')} gemischt, Summe nicht aussagekräftig</span>` : ''}</span>
       </div>
       <div class="pf-kennzahlen">
-        <div class="kz"><span class="kz-label">Investiert</span><span class="kz-wert">${fmt(eingesetzt)}&nbsp;€</span></div>
-        <div class="kz"><span class="kz-label">Aktueller Wert</span><span class="kz-wert">${fmt(wert)}&nbsp;€</span></div>
+        <div class="kz"><span class="kz-label">Investiert</span><span class="kz-wert">${fmt(eingesetzt)}&nbsp;${zeichen(waehrungen[0])}</span></div>
+        <div class="kz"><span class="kz-label">Aktueller Wert</span><span class="kz-wert">${fmt(wert)}&nbsp;${zeichen(waehrungen[0])}</span></div>
         <div class="kz"><span class="kz-label">Gesamtperformance</span>
-          <span class="kz-wert ${richtung}">${fmtPct(gvPct)}<span class="kz-neben">${gv >= 0 ? '+' : ''}${fmt(gv)}&nbsp;€</span></span>
+          <span class="kz-wert ${richtung}">${fmtPct(gvPct)}<span class="kz-neben">${gv >= 0 ? '+' : ''}${fmt(gv)}&nbsp;${zeichen(waehrungen[0])}</span></span>
         </div>
       </div>
     </div>
