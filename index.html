@@ -431,6 +431,13 @@
     display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
   }
   .pf-real.kurz { border-top: none; margin-top: 0; padding: 0 8px 14px; }
+  .pf-veraltet {
+    margin: 0 8px 12px; padding: 9px 12px; border-radius: 6px;
+    background: color-mix(in oklch, var(--warn) 12%, transparent);
+    border: 1px solid color-mix(in oklch, var(--warn) 35%, transparent);
+    font-size: 12.5px; color: var(--text-dim); line-height: 1.45;
+  }
+  .pf-veraltet strong { color: var(--text); font-weight: 600; }
   .pf-real .titel { font-size: 13px; font-weight: 600; color: var(--text); }
   .pf-steuer { font-size: 12px; color: var(--text-dim); }
   .pf-real .summe { font-family: var(--num); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -1309,14 +1316,32 @@ document.addEventListener('click', (e) => {
    ohne erneuten Netzabruf neu zeichnen zu können */
 let aktuelleStocks = [];
 
+/* Aktien, die in der Watchlist stehen, zu denen status.json aber noch
+   keinen Kurs hat. Sie tauchen erst nach dem nächsten Kursabruf auf –
+   bis dahin weist das Portfolio darauf hin, statt sie zu verschlucken. */
+let ohneKurse = [];
+
 async function ergaenzePositionen(stocks) {
+  ohneKurse = [];
   const { repo, token } = getSettings();
   if (DEMO || !repo || !token) return;      // im Testmodus stehen sie in status.json
   try {
     const { json } = await loadWatchlistFile();
-    const nachTicker = {};
-    (json.stocks || []).forEach(s => { nachTicker[s.ticker] = s.positions || []; });
-    stocks.forEach(s => { if (nachTicker[s.ticker]) s.positions = nachTicker[s.ticker]; });
+    const offen = {};
+    (json.stocks || []).forEach(s => { offen[s.ticker] = s; });
+    stocks.forEach(s => {
+      const w = offen[s.ticker];
+      if (!w) return;
+      // Alle drei Felder zusammen – sonst stünden Einstiege von heute neben
+      // Verkäufen von vorgestern und das Ergebnis wäre falsch.
+      s.positions = w.positions || [];
+      s.sales     = w.sales     || [];
+      s.realized  = w.realized  || [];
+      delete offen[s.ticker];
+    });
+    ohneKurse = Object.values(offen)
+      .filter(w => (w.positions || []).length || (w.realized || []).length)
+      .map(w => w.ticker);
   } catch (_) {
     // Watchlist nicht lesbar: Kurse trotzdem anzeigen, Portfolio bleibt leer
   }
@@ -1462,15 +1487,35 @@ function renderPortfolio(stocks) {
   const el = document.getElementById('portfolio');
   const { posten, alle, eingesetzt, wert, realisiert, steuer, waehrungen, gv, gvPct } = berechnePortfolio(stocks);
 
+  // Ein Einstieg in Euro braucht price_eur aus status.json. Fehlt es, weil die
+  // Kurse aelter sind als der Eintrag, liesse sich die Position nicht rechnen –
+  // frueher verschwand sie dann wortlos. Jetzt steht es da.
+  const ohneEuroKurs = stocks
+    .filter(s => (s.positions || []).some(p => (p.currency || '') === 'EUR') && s.price_eur == null)
+    .map(s => s.ticker);
+  const fehlend = [...new Set([...ohneEuroKurs, ...(typeof ohneKurse !== 'undefined' ? ohneKurse : [])])];
+  const hinweisBlock = fehlend.length
+    ? `<div class="pf-veraltet">Für ${fehlend.length} ${fehlend.length === 1 ? 'Aktie' : 'Aktien'} fehlen noch aktuelle Kurse
+         (${fehlend.slice(0, 6).join(', ')}${fehlend.length > 6 ? ' und weitere' : ''}) – sie fehlen oben in der Summe.
+         Einmal <strong>Kurse jetzt aktualisieren</strong> ausführen.</div>`
+    : '';
+
+  // Gehört neben die Summe, nicht in die zugeklappten Details: wer die
+  // Gesamtperformance liest, muss sehen, dass sie Währungen vermischt.
+  const waehrungWarnung = waehrungen.length > 1
+    ? `<div class="pf-veraltet">Die Einstiege stehen in ${waehrungen.join(' und ')}.
+         <strong>Summe und Prozentwert sind dadurch nicht aussagekräftig.</strong></div>`
+    : '';
+
   if (!alle.length) {
     el.innerHTML = darfSchreiben()
       ? `<div class="pf">
            <div class="pf-head"><div class="pf-titelblock">
              <span class="pf-title">Getätigte Einstiege</span>
-             <span class="pf-untertitel">Noch keine Position erfasst</span>
+             <span class="pf-untertitel">${fehlend.length ? 'Kurse noch nicht aktuell' : 'Noch keine Position erfasst'}</span>
            </div></div>
-           <div class="pf-leer">Fahre unten in der Tabelle über eine Aktie und klicke auf
-             <strong>+ Einstieg erfassen</strong>. Danach siehst du hier die Entwicklung seit deinem Einstieg.</div>
+           ${hinweisBlock || `<div class="pf-leer">Fahre unten in der Tabelle über eine Aktie und klicke auf
+             <strong>+ Einstieg erfassen</strong>. Danach siehst du hier die Entwicklung seit deinem Einstieg.</div>`}
          </div>`
       : '';
     return;
@@ -1504,6 +1549,7 @@ function renderPortfolio(stocks) {
 
   const mitVerkauf = alle.filter(p => p.anzahlVerkaeufe || p.anzahlAbgeschlossen);
   const z = zeichen(waehrungen[0]);
+
 
   // Die Summe gehört in die Übersicht, die Aufschlüsselung je Aktie erst
   // in die Details – sonst wird der Kopf wieder lang.
@@ -1543,14 +1589,15 @@ function renderPortfolio(stocks) {
         </svg>
       </button>
     </div>
+    ${waehrungWarnung}
+    ${hinweisBlock}
     ${realisiertKurz}
     <div class="pf-detail-wrap${offen ? ' offen' : ''}"${offen ? ' style="height: auto"' : ''}>
     <div class="pf-detail" id="pfDetail">
       <div class="pf-head">
         <div class="pf-titelblock">
           <span class="pf-title">Getätigte Einstiege</span>
-          <span class="pf-untertitel">Entwicklung seit Einstieg${
-            waehrungen.length > 1 ? ` · <span class="pf-warnung">Achtung: ${waehrungen.join(' und ')} gemischt, Summe nicht aussagekräftig</span>` : ''}</span>
+          <span class="pf-untertitel">Entwicklung seit Einstieg</span>
         </div>
       </div>
       <div class="pf-body">
