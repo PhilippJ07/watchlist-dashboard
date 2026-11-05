@@ -823,10 +823,11 @@
       <p class="dlg-hint" id="vkHinweis"></p>
       <div class="dlg-felder">
         <div class="field">
-          <label for="vkStueck">Verkaufte Stückzahl</label>
-          <!-- step="any": Bruchstücke haben sechs Nachkommastellen. Mit
-               step="0.0001" wies der Browser genau den Komplettverkauf ab. -->
-          <input type="number" step="any" min="0" id="vkStueck" required>
+          <!-- Eingegeben wird der Betrag, nicht die Stückzahl: die hat sechs
+               Nachkommastellen und ist von Hand nicht zumutbar. Die Stückzahl
+               rechnet das Formular aus und zeigt sie unten an. -->
+          <label for="vkBetrag">Verkaufsbetrag <span id="vkWaehrungLabel"></span></label>
+          <input type="number" step="0.01" min="0" id="vkBetrag" required>
         </div>
         <div class="field">
           <label for="vkKurs">Verkaufskurs</label>
@@ -1165,18 +1166,41 @@ document.addEventListener('click', (e) => {
 /* ---------- Teilverkauf ---------- */
 
 const vkDlg = document.getElementById('verkaufDialog');
-let vkTicker = null, vkBestand = 0, vkSchnitt = 0;
+let vkTicker = null, vkBestand = 0, vkSchnitt = 0, vkWaehrung = 'EUR';
+/* Wurde "Alles" gedrückt, gilt der volle Bestand – unabhängig davon, was
+   der auf zwei Stellen gerundete Betrag zurückrechnet. Jede Änderung am
+   Betragsfeld hebt das wieder auf. */
+let vkAlles = false;
+
+const stueckText = n => n.toLocaleString('de-DE', { maximumFractionDigits: 6 });
+
+/* Aus dem eingegebenen Betrag die Stückzahl machen. Liegt der Betrag
+   innerhalb eines Cents am vollen Bestand, gilt der volle Bestand – sonst
+   bliebe ein unsichtbarer Rest stehen. Alles darüber bleibt stehen, damit
+   ein zu hoher Betrag als Fehler auffällt statt still gekappt zu werden. */
+function vkStueckAusBetrag(betrag, kurs) {
+  if (vkAlles) return vkBestand;
+  const stueck = betrag / kurs;
+  return Math.abs(stueck - vkBestand) <= 0.01 / kurs ? vkBestand : stueck;
+}
 
 function vkRechnungAktualisieren() {
-  const stueck = parseFloat(document.getElementById('vkStueck').value);
+  const betrag = parseFloat(document.getElementById('vkBetrag').value);
   const kurs = parseFloat(document.getElementById('vkKurs').value);
   const el = document.getElementById('vkRechnung');
-  if (!(stueck > 0) || !(kurs > 0)) { el.textContent = ''; return; }
-  const erloes = stueck * kurs;
+  if (!(betrag > 0) || !(kurs > 0)) { el.textContent = ''; return; }
+
+  const stueck = vkStueckAusBetrag(betrag, kurs);
+  if (stueck > vkBestand) {
+    el.textContent = `Zu viel: die Position ist heute nur ${fmt(vkBestand * kurs)}`
+      + `\u00a0${zeichen(vkWaehrung)} wert.`;
+    return;
+  }
   const gewinn = stueck * (kurs - vkSchnitt);
   const rest = Math.max(vkBestand - stueck, 0);
-  el.textContent = `Erlös ${fmt(erloes)} · realisiert ${gewinn >= 0 ? '+' : ''}${fmt(gewinn)}`
-    + ` · Rest ${rest < 1e-9 ? 'keiner (Position geschlossen)' : rest.toLocaleString('de-DE', { maximumFractionDigits: 4 }) + ' Stück'}`;
+  el.textContent = `${stueckText(stueck)} Stück · realisiert ${gewinn >= 0 ? '+' : ''}${fmt(gewinn)}`
+    + `\u00a0${zeichen(vkWaehrung)}`
+    + ` · Rest ${rest < 1e-9 ? 'keiner (Position geschlossen)' : stueckText(rest) + ' Stück'}`;
 }
 
 function oeffneVerkaufDialog(ticker) {
@@ -1186,33 +1210,35 @@ function oeffneVerkaufDialog(ticker) {
   if (!p || !p.offen) return;
 
   vkTicker = ticker; vkBestand = p.stueck; vkSchnitt = p.schnitt;
+  vkWaehrung = p.waehrung; vkAlles = false;
+  const z = zeichen(p.waehrung);
   document.getElementById('vkTitel').textContent = `${ticker} – Teilverkauf`;
+  document.getElementById('vkWaehrungLabel').textContent = z ? `(${z})` : '';
   document.getElementById('vkHinweis').textContent =
-    `Bestand ${p.stueck.toLocaleString('de-DE', { maximumFractionDigits: 4 })} Stück · `
-    + `Ø-Einstieg ${fmt(p.schnitt)} · aktueller Kurs ${fmt(p.kurs)}`;
-  document.getElementById('vkStueck').value = '';
-  // Kein max-Attribut: eine auf wenige Stellen gerundete Obergrenze hat den
-  // Komplettverkauf blockiert. Geprüft wird in JS, mit Toleranz.
-  document.getElementById('vkStueck').removeAttribute('max');
+    `Bestand ${stueckText(p.stueck)} Stück, heute ${fmt(p.wert)}\u00a0${z} wert · `
+    + `Ø-Einstieg ${fmt(p.schnitt)}\u00a0${z} · aktueller Kurs ${fmt(p.kurs)}\u00a0${z}`;
+  document.getElementById('vkBetrag').value = '';
   document.getElementById('vkKurs').value = p.kurs;
   document.getElementById('vkDatum').value = new Date().toISOString().slice(0, 10);
   document.getElementById('vkMsg').textContent = '';
   vkRechnungAktualisieren();
   vkDlg.showModal();
-  document.getElementById('vkStueck').focus();
+  document.getElementById('vkBetrag').focus();
 }
 
-['vkStueck', 'vkKurs'].forEach(id =>
-  document.getElementById(id).addEventListener('input', vkRechnungAktualisieren));
+document.getElementById('vkBetrag').addEventListener('input', () => {
+  vkAlles = false;                 // von Hand geändert: kein Komplettverkauf mehr
+  vkRechnungAktualisieren();
+});
+document.getElementById('vkKurs').addEventListener('input', vkRechnungAktualisieren);
 
 document.getElementById('vkSchnell').addEventListener('click', (e) => {
   const b = e.target.closest('[data-anteil]');
   if (!b) return;
   const anteil = parseFloat(b.getAttribute('data-anteil'));
-  // "Alles" übernimmt den Bestand ungerundet. Gerundet blieb sonst ein
-  // Bruchteil einer Aktie stehen und die Position verschwand nie.
-  document.getElementById('vkStueck').value =
-    anteil === 1 ? vkBestand : +(vkBestand * anteil).toFixed(6);
+  const kurs = parseFloat(document.getElementById('vkKurs').value) || 0;
+  vkAlles = anteil === 1;
+  document.getElementById('vkBetrag').value = (vkBestand * anteil * kurs).toFixed(2);
   vkRechnungAktualisieren();
 });
 
@@ -1220,26 +1246,24 @@ document.getElementById('vkAbbrechen').addEventListener('click', () => vkDlg.clo
 
 document.getElementById('verkaufForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  let stueck = parseFloat(document.getElementById('vkStueck').value);
+  const betrag = parseFloat(document.getElementById('vkBetrag').value);
   const kurs = parseFloat(document.getElementById('vkKurs').value);
   const datum = document.getElementById('vkDatum').value || new Date().toISOString().slice(0, 10);
   const msg = document.getElementById('vkMsg');
 
-  if (!(stueck > 0) || !(kurs > 0)) {
+  if (!(betrag > 0) || !(kurs > 0)) {
     msg.className = 'admin-msg err';
-    msg.textContent = 'Stückzahl und Verkaufskurs müssen größer als 0 sein.';
-    return;
-  }
-  if (stueck > vkBestand + 1e-9) {
-    msg.className = 'admin-msg err';
-    msg.textContent = `Du hältst nur ${vkBestand.toLocaleString('de-DE', { maximumFractionDigits: 4 })} Stück.`;
+    msg.textContent = 'Betrag und Verkaufskurs müssen größer als 0 sein.';
     return;
   }
 
-  // Wer praktisch alles verkauft, meint alles. Bleibt rechnerisch weniger als
-  // ein Cent übrig, wird auf den vollen Bestand aufgerundet – sonst hinge eine
-  // unsichtbare Restposition im Depot.
-  if (stueck > vkBestand - (vkSchnitt > 0 ? 0.01 / vkSchnitt : 1e-9)) stueck = vkBestand;
+  const stueck = vkStueckAusBetrag(betrag, kurs);
+  if (stueck > vkBestand + 1e-9) {
+    msg.className = 'admin-msg err';
+    msg.textContent = `Dafür reicht die Position nicht: ${stueckText(vkBestand)} Stück `
+      + `sind heute ${fmt(vkBestand * kurs)}\u00a0${zeichen(vkWaehrung)} wert.`;
+    return;
+  }
 
   // Durchschnitt zum Verkaufszeitpunkt festhalten – spätere Nachkäufe sollen
   // den bereits realisierten Gewinn nicht rückwirkend verändern.
